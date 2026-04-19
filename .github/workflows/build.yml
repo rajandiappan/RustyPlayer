@@ -29,7 +29,7 @@ jobs:
         run: npm ci
 
       - name: Build portable
-        run: npm run pack
+        run: npm run build
 
       - name: Create portable zip
         run: |
