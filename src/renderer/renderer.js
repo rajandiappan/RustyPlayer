@@ -1,7 +1,7 @@
-const { openFolderBtn, searchInput, videoCount, gallery, videoPlayer, playPauseBtn, seekBar, timeDisplay, volumeBar, autoAdvanceBtn, sidebar, resizeHandle, player } = {
+const { openFolderBtn, searchInput, folderInfo, gallery, videoPlayer, playPauseBtn, seekBar, timeDisplay, volumeBar, autoAdvanceBtn, sidebar, resizeHandle, player } = {
   openFolderBtn: document.getElementById('openFolderBtn'),
   searchInput: document.getElementById('searchInput'),
-  videoCount: document.getElementById('videoCount'),
+  folderInfo: document.getElementById('folderInfo'),
   gallery: document.getElementById('gallery'),
   videoPlayer: document.getElementById('videoPlayer'),
   playPauseBtn: document.getElementById('playPauseBtn'),
@@ -19,12 +19,14 @@ let currentIndex = -1;
 let autoAdvance = true;
 let sidebarWidth = 25;
 let isResizing = false;
+let currentFolderPath = '';
 
 openFolderBtn.addEventListener('click', async () => {
   const folderPath = await window.api.openFolder();
   if (folderPath) {
+    currentFolderPath = folderPath;
     videos = await window.api.scanFolder(folderPath);
-    videoCount.textContent = `${videos.length} videos`;
+    folderInfo.textContent = `${folderPath} (${videos.length} videos)`;
     renderGallery();
     if (videos.length > 0) {
       playVideo(0);
@@ -80,6 +82,8 @@ function renderGallery(searchTerm = '') {
     addTagBtn.title = 'Add tag';
     addTagBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      videoPlayer.pause();
+      playPauseBtn.textContent = 'Play';
       showTagInput(originalIndex);
     });
 
@@ -115,6 +119,13 @@ function playVideo(index) {
   videoPlayer.play().catch(() => {});
   renderGallery(searchInput.value.toLowerCase());
   playPauseBtn.textContent = 'Pause';
+  
+  setTimeout(() => {
+    const playingThumb = gallery.querySelector('.thumbnail.playing');
+    if (playingThumb) {
+      playingThumb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
 }
 
 videoPlayer.addEventListener('ended', () => {
