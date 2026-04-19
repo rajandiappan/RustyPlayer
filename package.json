@@ -29,7 +29,7 @@
     },
     "publish": null,
     "win": {
-      "target": "nsis",
+      "target": "portable",
       "icon": "assets/icon.ico"
     },
     "nsis": {
