@@ -36,9 +36,8 @@ jobs:
           Compress-Archive -Path "dist\win-unpacked\*" -DestinationPath "dist\RustyPlayer-Portable.zip"
 
       - name: Install Inno Setup
-        uses: AaronParker/InnoSetup-action@v1
-        with:
-          version: '6.2'
+        run: |
+          choco install innosetup --version=6.2 -y
 
       - name: Build installer
         run: iscc installer.iss
