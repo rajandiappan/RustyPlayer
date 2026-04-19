@@ -29,18 +29,11 @@ jobs:
         run: npm ci
 
       - name: Build portable
-        run: npm run build
+        run: npm run pack
 
       - name: Create portable zip
         run: |
           Compress-Archive -Path "dist\win-unpacked\*" -DestinationPath "dist\RustyPlayer-Portable.zip"
-
-      - name: Install Inno Setup
-        run: |
-          choco install innosetup -y
-
-      - name: Build installer
-        run: iscc installer.iss
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -48,7 +41,7 @@ jobs:
           name: release-files
           path: |
             dist/RustyPlayer-Portable.zip
-            dist/rustyplayer-setup-*.exe
+            dist/win-unpacked/RustyPlayer.exe
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -56,7 +49,7 @@ jobs:
         with:
           files: |
             dist/RustyPlayer-Portable.zip
-            dist/rustyplayer-setup-*.exe
+            dist/win-unpacked/RustyPlayer.exe
           draft: false
           prerelease: false
         env:
