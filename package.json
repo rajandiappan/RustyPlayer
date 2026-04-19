@@ -9,12 +9,17 @@
     "build": "electron-builder --win",
     "pack": "electron-builder --dir"
   },
-  "keywords": ["video", "player", "electron"],
+  "keywords": [
+    "video",
+    "player",
+    "electron"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "electron": "^41.2.1",
-    "electron-builder": "^26.8.1"
+    "electron-builder": "^26.8.1",
+    "png-to-ico": "^3.0.1"
   },
   "build": {
     "appId": "com.rustyplayer.app",
@@ -22,6 +27,7 @@
     "directories": {
       "output": "dist"
     },
+    "publish": null,
     "win": {
       "target": "nsis",
       "icon": "assets/icon.ico"
