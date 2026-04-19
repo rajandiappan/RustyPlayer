@@ -26,22 +26,25 @@ jobs:
       - name: Build portable
         run: npm run pack
 
-      - name: Build NSIS installer
-        run: npm run build
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create portable zip
         run: |
           Compress-Archive -Path "dist\win-unpacked\*" -DestinationPath "dist\RustyPlayer-Portable.zip"
+
+      - name: Install Inno Setup
+        uses: AaronParker/InnoSetup-action@v1
+        with:
+          version: '6.2'
+
+      - name: Build installer
+        run: iscc installer.iss
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-files
           path: |
-            dist/win-unpacked/RustyPlayer.exe
             dist/RustyPlayer-Portable.zip
+            dist/rustyplayer-setup-*.exe
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -49,7 +52,7 @@ jobs:
         with:
           files: |
             dist/RustyPlayer-Portable.zip
-            dist/*.exe
+            dist/rustyplayer-setup-*.exe
           draft: false
           prerelease: false
         env:
