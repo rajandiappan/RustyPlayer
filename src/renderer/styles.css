@@ -168,12 +168,23 @@ body {
   display: flex;
   flex-direction: column;
   background-color: #000;
+  overflow: hidden;
+}
+
+.video-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000;
+  min-height: 0;
 }
 
 .video-element {
-  flex: 1;
-  width: 100%;
-  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   background-color: #000;
 }
 
