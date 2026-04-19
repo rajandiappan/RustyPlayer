@@ -1,0 +1,52 @@
+name: Portable Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  portable_release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build portable
+        run: npm run pack
+
+      - name: Create portable zip
+        run: |
+          Compress-Archive -Path "dist\\win-unpacked\\*" -DestinationPath "dist\\RustyPlayer-Portable.zip"
+
+      - name: Upload portable zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-release
+          path: dist/RustyPlayer-Portable.zip
+
+      - name: Create Release (Portable)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v4
+        with:
+          files: |
+            dist/RustyPlayer-Portable.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
