@@ -9,12 +9,20 @@
 - **Memory:** Preload current + next video only. Lazy-load rest (avoid OOM).
 - **Fallback:** Skip unsupported codecs gracefully — don't crash gallery on corrupt files.
 - **Tags:** Use sidecar JSON (same folder), not embedded video metadata.
+- **Inline tag editor:** Popover-based tag editing (no browser prompt).
 
 ## Architecture
 
 - Left panel (25% default): Thumbnail gallery + search/tags
 - Right panel: Video player with aspect ratio preserved
 - Resizable split view, dark theme
+
+## Controls
+
+- `▶` / `⏸` — Play / Pause (icons, not text)
+- `🔊` / `🔇` — Mute toggle
+- `Auto` — Toggle auto-advance (blue = ON)
+- Play/Pause, Seek, Volume disabled until video loaded
 
 ## Supported Formats
 

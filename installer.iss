@@ -1,6 +1,10 @@
 ; RustyPlayer Inno Setup Script
+; version injected from package.json via APP_VERSION env (see build.yml)
 #define MyAppName "RustyPlayer"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion GetEnv("APP_VERSION")
+#if MyAppVersion == ""
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "RustyPlayer"
 #define MyAppURL "https://github.com/rajandiappan/RustyPlayer"
 #define MyAppExeName "RustyPlayer.exe"
@@ -17,7 +21,7 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
 OutputDir=dist
-OutputBaseFilename=Rustyplayer-setup-{#MyAppVersion}
+OutputBaseFilename=RustyPlayer-setup-{#MyAppVersion}
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
