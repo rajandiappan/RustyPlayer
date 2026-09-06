@@ -194,6 +194,15 @@ app.whenReady().then(() => {
   try { log.info('App ready, creating window'); } catch (_) {}
   createWindow();
   try { log.info('Window created'); } catch (_) {}
+  // Auto-updater (P0.5): checks GitHub releases when publish provider is github; no-op if no CSC or offline
+  try {
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = true;
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+    log.info('AutoUpdater check triggered');
+  } catch (e) {
+    // electron-updater not installed or CSC not configured — expected in dev
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -331,5 +340,25 @@ ipcMain.handle('generate-thumbnail', async (event, videoPath) => {
     await fs.promises.access(thumbPath);
     return thumbPath;
   } catch (e) {}
-  return null;
+  // Try ffmpeg generation — graceful fallback if fluent-ffmpeg/ffmpeg not installed (P1 hardening: don't crash gallery)
+  try {
+    const ffmpeg = require('fluent-ffmpeg');
+    // Use system ffmpeg or bundled binary if available
+    await new Promise((resolve, reject) => {
+      ffmpeg(videoPath)
+        .on('error', reject)
+        .on('end', resolve)
+        .screenshots({
+          timestamps: ['00:00:02'],
+          filename: path.basename(thumbPath),
+          folder: path.dirname(thumbPath),
+          size: '320x?'
+        });
+    });
+    await fs.promises.access(thumbPath);
+    return thumbPath;
+  } catch (e) {
+    try { log.error('Thumbnail generation failed:', e.message || e); } catch (_) {}
+    return null;
+  }
 });

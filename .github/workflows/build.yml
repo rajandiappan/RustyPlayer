@@ -37,7 +37,11 @@ jobs:
       - name: Bundlesize guard
         run: npx bundlesize --help > /dev/null 2>&1 && npx bundlesize || echo "bundlesize not installed — skipping (config in package.json bundlesize)"
 
-      - name: Build portable
+      - name: Build portable (with CSC signing if secrets present)
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APP_VERSION: ${{ github.ref_name }}
         run: npm run pack
 
       - name: Create portable zip

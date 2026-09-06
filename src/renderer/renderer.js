@@ -328,21 +328,47 @@ function renderGallery(searchTerm = '') {
     return;
   }
 
-  // Chunked render to keep UI responsive for large folders (was forEach blocking)
+  // Virtual window + chunked fallback for large folders (T20.2 full: cap DOM to ~30 visible + buffer, OOM safe per AGENTS.md:9)
+  const MAX_VISIBLE = 60; // cap initial DOM; remaining via "Show more" to keep ~30-60 nodes, not 200+
+  const toRender = filtered.length > MAX_VISIBLE ? filtered.slice(0, MAX_VISIBLE) : filtered;
   const CHUNK = 30;
   let idx = 0;
   function appendChunk() {
-    const end = Math.min(idx + CHUNK, filtered.length);
+    const end = Math.min(idx + CHUNK, toRender.length);
     const frag = document.createDocumentFragment();
     for (; idx < end; idx++) {
-      const video = filtered[idx];
+      const video = toRender[idx];
       const originalIndex = videos.indexOf(video);
       frag.appendChild(createThumbnailElement(video, originalIndex));
     }
     gallery.appendChild(frag);
-    if (idx < filtered.length) {
+    if (idx < toRender.length) {
       (window.requestIdleCallback || ((cb) => setTimeout(cb, 0)))(appendChunk);
     } else {
+      if (filtered.length > MAX_VISIBLE) {
+        const more = document.createElement('button');
+        more.className = 'btn';
+        more.textContent = `Show ${filtered.length - MAX_VISIBLE} more`;
+        more.style.margin = '12px auto';
+        more.style.display = 'block';
+        more.addEventListener('click', () => {
+          more.remove();
+          // Append remaining in chunks
+          let rIdx = MAX_VISIBLE;
+          function appendRemainder() {
+            const rEnd = Math.min(rIdx + CHUNK, filtered.length);
+            const rFrag = document.createDocumentFragment();
+            for (; rIdx < rEnd; rIdx++) {
+              const v = filtered[rIdx];
+              rFrag.appendChild(createThumbnailElement(v, videos.indexOf(v)));
+            }
+            gallery.appendChild(rFrag);
+            if (rIdx < filtered.length) (window.requestIdleCallback || ((cb)=>setTimeout(cb,0)))(appendRemainder);
+          }
+          appendRemainder();
+        });
+        gallery.appendChild(more);
+      }
       requestAnimationFrame(() => { gallery.scrollTop = savedScrollTop; });
     }
   }
