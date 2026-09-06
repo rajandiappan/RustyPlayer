@@ -34,6 +34,7 @@ jobs:
         run: npm run test:coverage --if-present || npx c8 --check-coverage --lines 80 --branches 70 --functions 80 --reporter=text --reporter=lcov node --test "tests/**/*.test.js" || npm test
 
       - name: Bundlesize guard
+        shell: bash
         run: npx bundlesize --help > /dev/null 2>&1 && npx bundlesize || echo "bundlesize not installed — skipping (config in package.json bundlesize)"
 
       - name: Build portable
