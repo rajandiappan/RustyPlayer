@@ -23,6 +23,15 @@
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; media-src 'self' asset: blob:; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
+  "plugins": {
+    "updater": {
+      "active": false,
+      "endpoints": [
+        "https://github.com/rajandiappan/RustyPlayer/releases/latest/download/latest.json"
+      ],
+      "dialog": false
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

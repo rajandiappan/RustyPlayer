@@ -13,6 +13,9 @@ pub fn run() {
                 .level(log::LevelFilter::Info)
                 .build(),
         )
+        // Phase 4: updater wired but INACTIVE until real keys exist
+        // (docs/TAURI_SIGNING.md §2). Unsigned branch builds stay green.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::scan_folder,
             commands::get_video_tags,

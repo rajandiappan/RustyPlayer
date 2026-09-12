@@ -71,3 +71,16 @@ Electron's `null`-when-missing contract; ffmpeg opt-in stays a flagged follow-up
 | `npm test` Electron regression | ✅ 87/87 | |
 
 **Gate: PASSED.**
+
+## Phase 4 — Pack/Sign/Update (2026-09-12)
+
+| Case | Result | Notes |
+|------|--------|-------|
+| `T4.1` unsigned branch build (no secrets) | ✅ pass | `nsis 2.3MB`, `msi 3.3MB` (+updater/dialog/fs/log plugins) |
+| `T4.2` bundlesize gate (<90MB, target <25MB) | ✅ pass | well under; ffmpeg delta still `0MB` |
+| `T4.3` updater JSON signed on tags | ⏳ PENDING-USER | plugin wired, `active: false` until real keys (`docs/TAURI_SIGNING.md §2`); no placeholder pubkey committed |
+| `T4.4` installer smoke (install, launch, `asset:` clean console) | ⏳ PENDING | needs display; run `bundle/nsis/*.exe` |
+| `T4.5` full regression | ✅ pass | `cargo 14/14`, `clippy`/`fmt` clean, adapter `3/3`, `npm 87/87` |
+| CI `tauri.yml` (guard→test→build on next push) | ⏳ PENDING | verify green in GitHub Actions after push |
+
+**Gate: PASSED (auto).** `T4.3/T4.4` + CI watch are user-side; they gate Phase 5 cutover, not Phase 5 prep.
