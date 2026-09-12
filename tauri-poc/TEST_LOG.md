@@ -149,3 +149,11 @@ reset, awaiting one click to confirm `asset://` src.
   `npm test 87/87`, `nsis 2.3MB` / `msi 3.3MB`.
 - Left for cutover decision (`PARITY.md`): manual T5.2/T5.4/T5.6 matrix,
   T4.3 signing secret, T4.4 installer smoke.
+
+## Cleanup notes (2026-09-12)
+
+- `debug_report` probe never reached any commit (added + reverted in workdir);
+  verified absent via grep. Adapter test pins that absence.
+- `tauri` now declares `features = ["protocol-asset"]` (`http-range` for
+  `<video>` seeking) with a keep-comment in `Cargo.toml`.
+- Stray `tauri-debug-*.txt` captures removed from repo root.
