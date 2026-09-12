@@ -1,8 +1,11 @@
 # AGENTS.md — Rust Video Player
 
-## Key Decisions (from Council v0.3)
+## Key Decisions (from Council v0.3, cutover 2026-09-12: Electron → Tauri v2)
 
-- **Platform:** Electron (HTML/video.js) — not Rust native. Faster dev with web wrapper.
+- **Platform:** Tauri v2 (weak-webview, ~2MB nsis) — cut over from Electron. Electron app archived to `legacy-electron/` + `legacy-electron` branch (at c354775).
+- **Asset protocol:** `app.security.assetProtocol { enable: true, scope: ["**/*"] }` replaces `file://` — all media loads via `convertFileSrc` (`asset://`); `file://` is blocked by WebView2.
+- **Capabilities:** least-privilege (`capabilities/default.json`) — fs read `$VIDEO/**` + write only `$VIDEO/**/*.json`, dialog/open/updater scoped allows; no broad shell/path access.
+- **Updater:** via `tauri-plugin-updater` (pubkey pinned in `tauri.conf.json`, tag-gated signing secrets; plugin REQUIRES pubkey even when inactive).
 - **Format scope v1:** MP4, WebM, MOV only. MKV/AVI/FLV as v2 if needed.
 - **Navigation:** Arrow keys (Up/Down prev/next), Space (play/pause), Escape (browse mode). Keyboard-first.
 - **Auto-advance:** Videos auto-play next when current ends. Toggle with any key press.

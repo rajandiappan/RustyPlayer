@@ -1,69 +1,34 @@
 # RustyPlayer
 
-A lightweight video player with a thumbnail gallery for easy browsing and playback.
-
-![RustyPlayer](screenshot.png)
+A lightweight video player with a thumbnail gallery for easy browsing and playback,
+built on [Tauri v2](https://tauri.app/) (~2MB nsis bundle, weak-webview).
 
 ## Features
 
 - **Thumbnail Gallery** — Browse videos as visual thumbnails in a scrollable grid
-- **Auto-Advance** — Videos auto-play continuously (TikTok-style flow)
-- **Keyboard Navigation** — Control playback without leaving the keyboard
-  - `↑` / `↓` — Previous / Next video
-  - `←` / `→` — Seek backward / forward 10 seconds
-  - `Space` — Play / Pause
-  - `Escape` — Focus search
-- **Tagging** — Add custom tags to videos for organization
-- **Search** — Filter videos by name or tag
-- **Resizable Panel** — Drag to resize the sidebar
-- **Dark Theme** — Easy on the eyes
+- **Auto-Advance** — Videos auto-play continuously (toggle with any key)
+- **Keyboard Navigation** — `↑`/`↓` prev/next, `←`/`→` seek ±10s, `Space` play/pause, `Esc` browse mode
+- **Tagging & Search** — Sidecar-JSON tags, filter by name or tag
+- **Dark Theme** — Resizable sidebar, aspect-ratio-preserved player
 
-## Supported Formats
-
-MP4, WebM, MOV
+Supported formats: MP4, WebM, MOV.
 
 ## Getting Started
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18+)
-- [npm](https://npmjs.com/)
-
-### Installation
+Prerequisites: [Node.js](https://nodejs.org/) (v18+) and Rust toolchain.
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/rustyplayer.git
-cd rustyplayer
-
-# Install dependencies
-npm install
+npm ci
+npm run tauri dev        # dev window
+npm run tauri build      # release bundle (~2MB nsis)
 ```
 
-### Running
+## Docs & History
 
-```bash
-# Development mode
-npm run dev
-
-# Build for production
-npm run build
-```
-
-## Usage
-
-1. Click **Open Folder** to select a video directory
-2. Click a thumbnail to start playing
-3. Use keyboard shortcuts to navigate
-
-## Tech Stack
-
-- [Electron](https://www.electronjs.org/) — Desktop framework
-- HTML5 Video — Media playback
-
-## Contributing
-
-Contributions welcome! Feel free to open issues and pull requests.
+- Product spec: [PRD_Rust_Video_Player.md](PRD_Rust_Video_Player.md)
+- Release signing: [docs/TAURI_SIGNING.md](docs/TAURI_SIGNING.md)
+- Verification log: [TEST_LOG.md](TEST_LOG.md)
+- Electron predecessor (archived): [legacy-electron/](legacy-electron/)
 
 ## License
 

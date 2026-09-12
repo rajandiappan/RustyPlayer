@@ -1,15 +1,31 @@
 node_modules/
 dist/
+dist-ssr/
 *.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.local
 .DS_Store
 Thumbs.db
 
-# Rust / Tauri (POC isolated until parity gate — see TAURI_PORT_PLAN.md)
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Rust / Tauri
 src-tauri/target/
 src-tauri/WixTools/
-tauri-poc/node_modules/
-tauri-poc/src-tauri/target/
-tauri-poc/src-tauri/WixTools/
+
 # Signing secrets — NEVER commit (see docs/TAURI_SIGNING.md)
 *.key
 *.pfx
