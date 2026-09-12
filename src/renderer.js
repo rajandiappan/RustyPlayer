@@ -1115,6 +1115,17 @@ document.addEventListener('mouseup', () => {
   try { window.api.saveConfig({ sidebarWidth }); } catch {}
 });
 
+// Update status toasts (dispatched by src/js/updater.js, rendered here so all
+// DOM ownership stays in this module). Reuses the now-playing toast element.
+try {
+  window.addEventListener('rustyplayer-update', (e) => {
+    nowPlayingToast.textContent = (e && e.detail) || 'Update status changed';
+    nowPlayingToast.classList.add('visible');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => nowPlayingToast.classList.remove('visible'), 4000);
+  });
+} catch {}
+
 // Phase 2: Tauri native drag-drop — webkitGetAsEntry/file.path above are
 // Electron-only (no-ops in WebView). Tauri delivers real paths via event.
 try {

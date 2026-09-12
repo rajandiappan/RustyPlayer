@@ -149,6 +149,27 @@ pub fn parse_sidecar_tags(raw: &str) -> Option<Vec<String>> {
     Some(out)
 }
 
+/// Build a validated `bounds` JSON value for window-state persistence
+/// (Electron `getBounds()` parity: DIP x/y/width/height). `None` when invalid.
+pub fn bounds_to_json(x: f64, y: f64, width: f64, height: f64) -> Option<Value> {
+    if !is_valid_bounds(x, y, width, height) {
+        return None;
+    }
+    Some(serde_json::json!({ "x": x, "y": y, "width": width, "height": height }))
+}
+
+/// Persist window bounds into the config file, preserving all other keys
+/// (merge path of `do_save`). Returns false when bounds invalid or IO fails.
+pub fn persist_bounds(cfg_path: &Path, x: f64, y: f64, width: f64, height: f64) -> bool {
+    let bounds = match bounds_to_json(x, y, width, height) {
+        Some(b) => b,
+        None => return false,
+    };
+    let mut patch = Map::new();
+    patch.insert("bounds".to_owned(), bounds);
+    do_save(cfg_path, &Value::Object(patch))
+}
+
 /// Supported video extension check (`main.js:227,263`).
 pub fn supported_ext(path: &Path) -> bool {
     path.extension()
@@ -251,6 +272,27 @@ mod tests {
         assert_eq!(parse_sidecar_tags("not json"), None);
         assert_eq!(parse_sidecar_tags(r#"{"tags":"nope"}"#), None);
         assert_eq!(parse_sidecar_tags(&"x".repeat(MAX_SIDECAR_LEN + 1)), None);
+    }
+
+    #[test]
+    fn bounds_helpers_validate_and_merge() {
+        assert!(bounds_to_json(10.0, 20.0, 1200.0, 800.0).is_some());
+        assert!(bounds_to_json(0.0, 0.0, 10.0, 10.0).is_none());
+        assert!(bounds_to_json(0.0, 0.0, f64::NAN, 800.0).is_none());
+        let p = tmp_path("bounds");
+        let _ = std::fs::remove_file(&p);
+        assert!(persist_bounds(&p, 10.0, 20.0, 1200.0, 800.0));
+        // other keys survive the merge
+        assert!(do_save(&p, &json!({"volume": 0.5})));
+        let loaded = load_config(&p);
+        assert_eq!(
+            loaded.get("bounds"),
+            Some(&json!({"x": 10.0, "y": 20.0, "width": 1200.0, "height": 800.0}))
+        );
+        assert_eq!(loaded.get("volume"), Some(&json!(0.5)));
+        // invalid bounds never touch the file
+        assert!(!persist_bounds(&p, 0.0, 0.0, 10.0, 10.0));
+        let _ = std::fs::remove_file(&p);
     }
 
     #[test]

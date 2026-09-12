@@ -1,5 +1,15 @@
 # RustyPlayer Tauri — Test Evidence Log (append-only, see TAURI_PORT_PLAN.md §6.2)
 
+## Complete-product batch (2026-09-12)
+
+| Item | Result | Notes |
+|------|--------|-------|
+| App icons from `legacy-electron/build/icon.ico` | ✅ | `npx tauri icon` regenerated all sizes; bundled (`nsis 2.3MB` / `msi 3.3MB` unchanged) |
+| Updater startup check | ✅ | `updater:default` capability + `src/js/updater.ts` (check → download → restart toast via `rustyplayer-update` event); silent offline; `tests/updater.test.js` 4/4 |
+| Window bounds persist | ✅ | `CloseRequested` sync flush + `setup` restore (`is_valid_bounds` gate); `bounds_helpers_validate_and_merge` test |
+| Gates | ✅ | `cargo 17/17`, `clippy`/`fmt` clean, frontend `9/9` (5 adapter + 4 updater), `rustyplayer.exe` ALIVE 30MB |
+| Manual leftovers | ⏳ | resize→×→reopen restores size; update toast appears only when a signed release exists (needs tag + secret) |
+
 ## Cutover (2026-09-12, commit `7f7fb42`)
 
 - `legacy-electron` branch pinned at `c354775`; Electron tree archived to `legacy-electron/`.
