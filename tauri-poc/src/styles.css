@@ -69,11 +69,36 @@ body {
 }
 
 .recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 11px;
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
+}
+
+.recent-clear-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 11px;
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.recent-clear-btn:hover {
+  color: #ff6666;
+}
+
+.recent-clear-btn:focus-visible {
+  outline: 1px solid #ff6666;
+  outline-offset: 1px;
 }
 
 .recent-folder-item {

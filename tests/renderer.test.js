@@ -893,6 +893,40 @@ describe('renderer — Tier 5 power features (items 37-44)', () => {
   });
 });
 
+describe('renderer — clear recent folders', () => {
+  it('clears the list via the Clear button and hides the button when empty', async () => {
+    let recents = ['C:\\Old\\Vids'];
+    let clearCalls = 0;
+    const app = createApp({
+      getRecentFolders: async () => [...recents],
+      clearRecentFolders: async () => { clearCalls++; recents = []; return []; },
+    });
+    await tick(100); // startup renderRecentFolders()
+    assert.equal(app.recentFolders.querySelectorAll('.recent-folder-item').length, 1);
+    const btn = app.document.getElementById('clearRecentBtn');
+    assert.ok(btn, 'expected #clearRecentBtn');
+    assert.notEqual(btn.style.display, 'none');
+    btn.click();
+    await tick(100);
+    assert.equal(clearCalls, 1);
+    assert.equal(app.recentFolders.querySelectorAll('.recent-folder-item').length, 0);
+    assert.equal(btn.style.display, 'none');
+  });
+
+  it('shows an error toast when clearing fails', async () => {
+    const app = createApp({
+      getRecentFolders: async () => ['C:\\Old\\Vids'],
+      clearRecentFolders: async () => { throw new Error('disk full'); },
+    });
+    await tick(100);
+    app.document.getElementById('clearRecentBtn').click();
+    await tick(100);
+    const toast = app.document.getElementById('errorToast');
+    assert.ok(toast, 'expected error toast');
+    assert.match(toast.textContent, /disk full/);
+  });
+});
+
 describe('renderer — P0 hardening (crash, CSP, OOM, encoding)', () => {
   it('registers crash handlers and hardens CSP', () => {
     const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'src', 'renderer', 'index.html'), 'utf-8');

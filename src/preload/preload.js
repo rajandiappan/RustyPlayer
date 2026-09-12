@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('api', {
   saveConfig: (data) => ipcRenderer.invoke('save-config', data),
   getRecentFolders: () => ipcRenderer.invoke('get-recent-folders'),
   addRecentFolder: (folderPath) => ipcRenderer.invoke('add-recent-folder', folderPath),
+  clearRecentFolders: () => ipcRenderer.invoke('clear-recent-folders'),
   generateThumbnail: (videoPath) => ipcRenderer.invoke('generate-thumbnail', videoPath)
 });

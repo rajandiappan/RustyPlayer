@@ -31,6 +31,7 @@ pub fn run() {
             commands::save_config,
             commands::get_recent_folders,
             commands::add_recent_folder,
+            commands::clear_recent_folders,
             commands::open_folder,
             commands::open_in_explorer,
             commands::generate_thumbnail,

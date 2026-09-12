@@ -331,6 +331,13 @@ ipcMain.handle('add-recent-folder', async (event, folderPath) => {
   return list;
 });
 
+ipcMain.handle('clear-recent-folders', async () => {
+  const config = loadConfig();
+  config.recentFolders = [];
+  await saveConfig(config);
+  return [];
+});
+
 ipcMain.handle('generate-thumbnail', async (event, videoPath) => {
   if (!isValidString(videoPath, 2000) || !path.isAbsolute(videoPath)) return null;
   const ext = path.extname(videoPath).toLowerCase();

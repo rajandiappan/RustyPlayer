@@ -26,6 +26,7 @@ export const tauriApi = {
   getRecentFolders: (): Promise<string[]> => invoke("get_recent_folders"),
   addRecentFolder: (folderPath: string): Promise<string[]> =>
     invoke("add_recent_folder", { folderPath }),
+  clearRecentFolders: (): Promise<string[]> => invoke("clear_recent_folders"),
   generateThumbnail: (videoPath: string): Promise<string | null> =>
     invoke("generate_thumbnail", { videoPath }),
 };

@@ -20,6 +20,7 @@ const fixtures = {
   save_config: true,
   get_recent_folders: ['C:\\Vids'],
   add_recent_folder: ['C:\\Vids'],
+  clear_recent_folders: [],
   generate_thumbnail: null,
 };
 
@@ -53,6 +54,7 @@ describe('tauri adapter — T2.1 all 10 methods map to snake_case commands', () 
     assert.equal(await tauriApi.saveConfig({ volume: 0.5 }), true);
     assert.deepEqual(await tauriApi.getRecentFolders(), ['C:\\Vids']);
     assert.deepEqual(await tauriApi.addRecentFolder('C:\\Vids'), ['C:\\Vids']);
+    assert.deepEqual(await tauriApi.clearRecentFolders(), []);
     assert.equal(await tauriApi.generateThumbnail('C:\\Vids\\a.mp4'), null);
 
     const cmds = calls.map((c) => c.cmd);
@@ -66,11 +68,20 @@ describe('tauri adapter — T2.1 all 10 methods map to snake_case commands', () 
       'save_config',
       'get_recent_folders',
       'add_recent_folder',
+      'clear_recent_folders',
       'generate_thumbnail',
     ]);
     assert.deepEqual(calls[1].args, { folderPath: 'C:\\Vids' });
     assert.deepEqual(calls[3].args, { videoPath: 'C:\\Vids\\a.mp4', tags: ['rock'] });
     assert.deepEqual(calls[6].args, { data: { volume: 0.5 } });
+  });
+
+  test('clearRecentFolders sends bare clear command, returns []', async () => {
+    const { tauriApi } = await import('../src/js/tauriIpc.ts');
+    assert.deepEqual(await tauriApi.clearRecentFolders(), []);
+    const last = calls[calls.length - 1];
+    assert.equal(last.cmd, 'clear_recent_folders');
+    assert.deepEqual(last.args, {});
   });
 });
 

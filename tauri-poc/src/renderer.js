@@ -11,12 +11,13 @@ if (typeof window !== 'undefined' && !window.api) {
 window.addEventListener('error', (e) => { try { showError(e.message || 'Unexpected error'); } catch {} });
 window.addEventListener('unhandledrejection', (e) => { try { showError(e.reason && e.reason.message ? e.reason.message : String(e.reason)); } catch {} });
 
-const { openFolderBtn, searchInput, folderInfo, tagChips, recentFolders, gallery, loadingSpinner, videoWrapper, nowPlayingToast, titlebarText, dropOverlay, shortcutOverlay, shortcutClose, videoPlayer, playPauseBtn, seekBar, timeDisplay, muteBtn, volumeBar, autoAdvanceBtn, fullscreenBtn, pipBtn, sidebar, resizeHandle } = {
+const { openFolderBtn, searchInput, folderInfo, tagChips, recentFolders, clearRecentBtn, gallery, loadingSpinner, videoWrapper, nowPlayingToast, titlebarText, dropOverlay, shortcutOverlay, shortcutClose, videoPlayer, playPauseBtn, seekBar, timeDisplay, muteBtn, volumeBar, autoAdvanceBtn, fullscreenBtn, pipBtn, sidebar, resizeHandle } = {
   openFolderBtn: document.getElementById('openFolderBtn'),
   searchInput: document.getElementById('searchInput'),
   folderInfo: document.getElementById('folderInfo'),
   tagChips: document.getElementById('tagChips'),
   recentFolders: document.getElementById('recentFolders'),
+  clearRecentBtn: document.getElementById('clearRecentBtn'),
   gallery: document.getElementById('gallery'),
   loadingSpinner: document.getElementById('loadingSpinner'),
   videoWrapper: document.getElementById('videoWrapper'),
@@ -142,6 +143,7 @@ async function openAndRenderFolder(folderPath) {
 async function renderRecentFolders() {
   try {
     const recent = await window.api.getRecentFolders();
+    clearRecentBtn.style.display = recent.length ? '' : 'none';
     recentFolders.innerHTML = '';
     recent.forEach(folder => {
       const item = document.createElement('button');
@@ -154,6 +156,15 @@ async function renderRecentFolders() {
     });
   } catch (e) {}
 }
+
+clearRecentBtn.addEventListener('click', async () => {
+  try {
+    await window.api.clearRecentFolders();
+    renderRecentFolders();
+  } catch (e) {
+    showError(e.message || 'Failed to clear recent folders');
+  }
+});
 
 searchInput.addEventListener('input', debounce(() => {
   renderGallery(searchInput.value.toLowerCase());

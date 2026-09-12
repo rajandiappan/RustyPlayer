@@ -196,6 +196,15 @@ describe('main — Tier 5 handlers (items 41, 43)', () => {
     assert.equal(recent.length, 10);
   });
 
+  it('clears recent folder history', async () => {
+    fs.writeFileSync(path.join(userDataDir, 'rustyplayer-config.json'), JSON.stringify({}));
+    await handlers['save-config']({}, { recentFolders: ['C:\\Vids\\A', 'C:\\Vids\\B'] });
+    assert.deepStrictEqual(await handlers['get-recent-folders']({}), ['C:\\Vids\\A', 'C:\\Vids\\B']);
+    assert.deepStrictEqual(await handlers['clear-recent-folders']({}), []);
+    assert.deepStrictEqual(await handlers['get-recent-folders']({}), []);
+    assert.deepStrictEqual((await handlers['get-config']({})).recentFolders, []);
+  });
+
   it('returns null thumbnail when no cached file exists and returns path when cached', async () => {
     const videoPath = path.join(fixtureDir, 'alpha.mp4');
     assert.equal(await handlers['generate-thumbnail']({}, videoPath), null);

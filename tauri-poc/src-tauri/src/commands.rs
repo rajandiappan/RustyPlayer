@@ -220,6 +220,22 @@ pub async fn add_recent_folder(app: tauri::AppHandle, folder_path: String) -> Ve
     list
 }
 
+/// Port of `clear-recent-folders` (`main.js:334`): empty the list, keep other
+/// config keys via the `do_save` merge. Returns `[]` like Electron.
+#[tauri::command]
+pub async fn clear_recent_folders(app: tauri::AppHandle) -> Vec<String> {
+    let path = match app_config_path(&app) {
+        Ok(p) => p,
+        Err(_) => return Vec::new(),
+    };
+    let _guard = SAVE_MUTEX.lock().await;
+    config::do_save(
+        &path,
+        &serde_json::json!({ "recentFolders": Vec::<String>::new() }),
+    );
+    Vec::new()
+}
+
 #[tauri::command]
 pub async fn open_folder(app: tauri::AppHandle) -> Option<String> {
     use tauri_plugin_dialog::{DialogExt, FilePath};
@@ -328,6 +344,45 @@ mod tests {
         assert_eq!(list, vec!["b"]);
         let big: Vec<String> = (0..15).map(|i| format!("f{i}")).collect();
         assert_eq!(push_recent(big, "new".into()).len(), 10);
+    }
+
+    // Clear-recents: seed via do_save (the `clear_recent_folders` core is a
+    // SAVE_MUTEX-locked do_save of `{"recentFolders": []}` + return `[]`;
+    // AppHandle can't be built in unit tests, so exercise that path inline).
+    #[test]
+    fn clear_recents_empties_list_and_keeps_other_keys() {
+        let d = tmp_dir("clear-recents");
+        let cfg = d.join("c.json");
+        let a = d.join("a").to_string_lossy().into_owned();
+        let b = d.join("b").to_string_lossy().into_owned();
+        assert!(config::do_save(
+            &cfg,
+            &serde_json::json!({"recentFolders": [a, b], "volume": 0.5})
+        ));
+        let seeded = config::load_config(&cfg);
+        assert_eq!(
+            seeded
+                .get("recentFolders")
+                .and_then(|v| v.as_array())
+                .map(Vec::len),
+            Some(2)
+        );
+        assert!(config::do_save(
+            &cfg,
+            &serde_json::json!({"recentFolders": Vec::<String>::new()})
+        ));
+        let cleared = config::load_config(&cfg);
+        assert_eq!(
+            cleared
+                .get("recentFolders")
+                .and_then(|v| v.as_array())
+                .map(Vec::len),
+            Some(0)
+        );
+        // Merge keeps unrelated keys; push_recent still appends afterwards.
+        assert_eq!(cleared.get("volume"), Some(&serde_json::json!(0.5)));
+        assert_eq!(push_recent(Vec::new(), a.clone()), vec![a]);
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     // T1.7 — reveal validation
