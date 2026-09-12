@@ -345,6 +345,28 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 
+    // T5.1+T5.5 (auto) — shared parity fixture: same dir both runtimes must
+    // agree on. Copies to tempdir first (scan renames corrupt sidecars to .bak).
+    #[tokio::test]
+    async fn parity_shared_fixture() {
+        let fixture = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/videos");
+        assert!(fixture.is_dir(), "parity fixture missing");
+        let d = tmp_dir("parity");
+        for e in std::fs::read_dir(&fixture).unwrap() {
+            let e = e.unwrap();
+            std::fs::copy(e.path(), d.join(e.file_name())).unwrap();
+        }
+        let got = scan_dir(&d).await;
+        let names: Vec<_> = got.iter().map(|v| v.name.as_str()).collect();
+        // note.txt excluded; sorted; alpha keeps tags; malformed beta -> [] + .bak
+        assert_eq!(names, ["alpha.mp4", "beta.webm"]);
+        assert_eq!(got[0].tags, vec!["rock".to_string()]);
+        assert!(got[1].tags.is_empty());
+        assert!(d.join("beta.webm.json.bak").exists());
+        // Electron contract (tests/main.test.js): same expectations hold there.
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
     // T3.1/T3.3 — thumbnail contract: cache-hit without spawn, None parity
     #[tokio::test]
     async fn thumbnail_cache_hit_and_miss() {

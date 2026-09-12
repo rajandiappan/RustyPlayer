@@ -84,3 +84,20 @@ Electron's `null`-when-missing contract; ffmpeg opt-in stays a flagged follow-up
 | CI `tauri.yml` (guard→test→build on next push) | ⏳ PENDING | verify green in GitHub Actions after push |
 
 **Gate: PASSED (auto).** `T4.3/T4.4` + CI watch are user-side; they gate Phase 5 cutover, not Phase 5 prep.
+
+## Phase 5 — Parity Gate (2026-09-12)
+
+| Case | Result | Notes |
+|------|--------|-------|
+| `T5.1` scan parity (auto): shared `tests/fixtures/videos` | ✅ pass | `parity_shared_fixture` (sorted, tags, `.bak`, `note.txt` excluded) |
+| `T5.2` render parity | ⏳ MANUAL | run-book `PARITY.md`; DOM is 1:1 port, ids verified by adapter test |
+| `T5.3` playback incl. `AbortError` guard | ⏳ MANUAL | needs display + real media |
+| `T5.4` OOM 200-video | ⏳ MANUAL | cap code ported verbatim (`MAX_VISIBLE=60`) |
+| `T5.5` errors (auto part: corrupt→`.bak`, missing→`[]`) | ✅ pass | in `parity_shared_fixture` + `scan_missing_or_relative_is_empty` |
+| `T5.6` a11y spot-check | ⏳ MANUAL | markup ported verbatim |
+| `T5.7` perf (`<25MB`, `<500ms`, `<80MB`) | ✅/⏳ | size ✅ (`2.3MB`); timing needs display |
+| Full regression | ✅ pass | `cargo 15/15`, `clippy`/`fmt` clean, adapter `3/3`, `npm 87/87` |
+
+**Verdict: CUTOVER DEFERRED.** Auto green; manual T5.2–T5.4/T5.6 + T4.3 keys +
+T4.4 smoke need a display and maintainer keys. Per §6.2 incomplete ≠ pass —
+Electron stays primary, POC isolated, zero regression. Run-book: `PARITY.md`.
