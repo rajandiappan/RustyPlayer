@@ -49,3 +49,25 @@
 | Manual same-folder render identical (`tauri dev` vs Electron) | ⏳ PENDING | Needs a display; run `tauri-poc` exe, open a video folder, compare with Electron |
 
 **Gate: PASSED (auto).** Manual visual check left to user — Phase 3+ unaffected (backend/frontend decoupled via `invoke` surface, already tested).
+
+## Phase 3 — Thumbnails (2026-09-12)
+
+**Decision: option (b) default.** Zero-dep first-frame `<video>` display (already the
+gallery fallback in both builds) ships; no ffmpeg binary bundled. Rationale: the
+ffmpeg binary is GPL-3.0 (+25–80MB, kills the 1.3MB thesis) and blind canvas-seek
+pipelines risk 60-decoder OOM with no display to verify. `generate_thumbnail` keeps
+Electron's `null`-when-missing contract; ffmpeg opt-in stays a flagged follow-up.
+
+| Case | Result | Notes |
+|------|--------|-------|
+| `T3.1` cache-hit returns `Some` without spawn | ✅ pass | `thumbnail_cache_hit_and_miss` |
+| `T3.3` miss/invalid-ext/relative → `None`, no crash | ✅ pass | same test |
+| `T3.2` ffmpeg generation | ➖ N/A | deferred with (b) decision |
+| `T3.4` canvas capture | ➖ N/A | covered by (b): first-frame `<video>` already displays |
+| `T3.5` sizes recorded | ✅ | `nsis 1.6MB` / `msi 2.3MB` — ffmpeg delta `0MB` |
+| `cargo test` regression | ✅ 14/14 | |
+| `clippy -D warnings` + `fmt --check` | ✅ clean | |
+| Adapter tests regression | ✅ 3/3 | |
+| `npm test` Electron regression | ✅ 87/87 | |
+
+**Gate: PASSED.**

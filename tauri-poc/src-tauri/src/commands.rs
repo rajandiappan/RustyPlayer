@@ -345,6 +345,30 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
     }
 
+    // T3.1/T3.3 — thumbnail contract: cache-hit without spawn, None parity
+    #[tokio::test]
+    async fn thumbnail_cache_hit_and_miss() {
+        let d = tmp_dir("thumbs");
+        let v = d.join("v.mp4");
+        std::fs::write(&v, b"x").unwrap();
+        let vs = v.to_string_lossy().into_owned();
+        // Miss (no .thumb.jpg, no ffmpeg in Phase 3 default) -> None, no crash
+        assert_eq!(generate_thumbnail(vs.clone()).await, None);
+        // Hit -> Some without spawning anything
+        std::fs::write(format!("{vs}.thumb.jpg"), b"fakejpg").unwrap();
+        assert_eq!(
+            generate_thumbnail(vs.clone()).await,
+            Some(format!("{vs}.thumb.jpg"))
+        );
+        // Invalid ext / relative -> None
+        assert_eq!(
+            generate_thumbnail(d.join("v.txt").to_string_lossy().into_owned()).await,
+            None
+        );
+        assert_eq!(generate_thumbnail("relative.mp4".into()).await, None);
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
     // T1.5 — concurrent saves stay valid JSON under the mutex
     #[tokio::test]
     async fn concurrent_saves_do_not_corrupt() {
