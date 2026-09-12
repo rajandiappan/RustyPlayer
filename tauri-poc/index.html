@@ -2,26 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Phase 0 spike: asset:// replaces file:// (see TAURI_PORT_PLAN.md §1.1).
-         Full CSP lands in Phase 2; Vite dev needs 'unsafe-inline' for HMR. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; media-src 'self' asset: blob:; connect-src 'self' ipc: http://ipc.localhost" />
-    <title>RustyPlayer (Tauri POC)</title>
+    <!-- Phase 2: full port of src/renderer/index.html. asset: replaces file:
+         (TAURI_PORT_PLAN.md §1.1). Vite module script replaces classic script. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; media-src 'self' asset: blob:; object-src 'none'; base-uri 'none'; connect-src 'self' ipc: http://ipc.localhost" />
+    <title>RustyPlayer</title>
+    <link rel="stylesheet" href="/src/styles.css" />
     <script type="module" src="/src/main.ts" defer></script>
   </head>
-
   <body>
-    <div class="titlebar"><span id="titlebarText">RustyPlayer (Tauri POC)</span></div>
+    <div class="titlebar" id="titlebar"><span class="titlebar-text" id="titlebarText">RustyPlayer</span></div>
     <div class="app">
-      <aside class="sidebar" aria-label="Video gallery">
-        <div class="toolbar"><span class="folder-info" id="folderInfo">POC stubs (no backend yet)</span></div>
-        <div class="gallery" id="gallery" role="list"></div>
+      <aside class="sidebar" id="sidebar" role="complementary" aria-label="Video gallery">
+        <nav class="toolbar" aria-label="Folder controls">
+          <button id="openFolderBtn" class="btn" aria-label="Open folder">Open Folder</button>
+          <label for="searchInput" class="sr-only">Search videos</label>
+          <input type="text" id="searchInput" class="search-input" placeholder="Search..." aria-label="Search videos">
+        </nav>
+        <div class="folder-info" id="folderInfo" aria-live="polite"></div>
+        <div class="recent-section" id="recentSection">
+          <div class="recent-header">Recent Folders</div>
+          <div class="recent-folders" id="recentFolders"></div>
+        </div>
+        <div class="tag-chips" id="tagChips"></div>
+        <div class="gallery" id="gallery" role="list" aria-label="Video thumbnails">
+          <div class="loading-spinner" id="loadingSpinner" style="display:none;"><div class="spinner"></div><span>Scanning folder...</span></div>
+        </div>
       </aside>
-      <main class="player" aria-label="Video player">
-        <div class="video-wrapper"><video id="videoPlayer" controls preload="metadata"></video></div>
-        <div class="controls"><span class="time-display" id="srcInfo">click a stub → src set via convertFileSrc (asset://)</span></div>
+      <div class="resize-handle" id="resizeHandle" role="separator" aria-label="Resize sidebar" tabindex="0" aria-orientation="vertical" aria-valuemin="15" aria-valuemax="50" aria-valuenow="25"></div>
+      <main class="player" id="player" role="main" aria-label="Video player">
+        <div class="video-wrapper" id="videoWrapper">
+          <video id="videoPlayer" class="video-element" aria-label="Video player"></video>
+        </div>
+        <div class="now-playing-toast" id="nowPlayingToast" aria-live="polite"></div>
+        <nav class="controls" aria-label="Playback controls">
+          <button id="playPauseBtn" class="control-btn disabled" aria-label="Play">▶</button>
+          <label for="seekBar" class="sr-only">Seek position</label>
+          <input type="range" id="seekBar" class="seek-bar disabled" min="0" max="100" value="0" aria-label="Seek">
+          <span id="timeDisplay" aria-live="polite" role="timer" aria-atomic="true">0:00 / 0:00</span>
+          <button id="muteBtn" class="control-btn" aria-label="Mute">🔊</button>
+          <label for="volumeBar" class="sr-only">Volume</label>
+          <input type="range" id="volumeBar" class="volume-bar" min="0" max="100" value="100" aria-label="Volume">
+          <button id="autoAdvanceBtn" class="control-btn" aria-label="Toggle auto-advance" aria-pressed="true">Auto</button>
+          <button id="fullscreenBtn" class="control-btn" aria-label="Fullscreen">⛶</button>
+          <button id="pipBtn" class="control-btn" style="display:none;" aria-label="Picture in Picture">⧉</button>
+        </nav>
+        <div class="shortcut-hints" id="shortcutHints">
+          <span><kbd>Space</kbd> Play/Pause</span>
+          <span><kbd>↑↓</kbd> Prev/Next</span>
+          <span><kbd>←→</kbd> Seek ±10s</span>
+          <span><kbd>Esc</kbd> Focus Search</span>
+        </div>
       </main>
+    </div>
+    <div class="drop-overlay" id="dropOverlay" role="status" aria-live="polite"><div class="drop-message">Drop a folder here to open</div></div>
+    <div class="shortcut-overlay" id="shortcutOverlay" hidden role="dialog" aria-label="Keyboard shortcuts" aria-modal="true">
+      <div class="shortcut-modal">
+        <div class="shortcut-header"><h2>Keyboard Shortcuts</h2><button class="shortcut-close" id="shortcutClose" aria-label="Close">&times;</button></div>
+        <div class="shortcut-list">
+          <div class="shortcut-group"><h3>Playback</h3><div class="shortcut-row"><kbd>Space</kbd><span>Play / Pause</span></div><div class="shortcut-row"><kbd>←</kbd><span>Seek backward 10s</span></div><div class="shortcut-row"><kbd>→</kbd><span>Seek forward 10s</span></div></div>
+          <div class="shortcut-group"><h3>Navigation</h3><div class="shortcut-row"><kbd>↑</kbd><span>Previous video</span></div><div class="shortcut-row"><kbd>↓</kbd><span>Next video</span></div><div class="shortcut-row"><kbd>Enter</kbd><span>Play focused video</span></div><div class="shortcut-row"><kbd>Esc</kbd><span>Exit browse mode / Focus search</span></div></div>
+          <div class="shortcut-group"><h3>General</h3><div class="shortcut-row"><kbd>?</kbd><span>Show this overlay</span></div><div class="shortcut-row"><kbd>f</kbd><span>Fullscreen</span></div></div>
+        </div>
+      </div>
     </div>
   </body>
 </html>

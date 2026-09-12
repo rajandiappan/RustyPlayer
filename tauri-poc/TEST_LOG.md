@@ -31,3 +31,21 @@
 | `npm test` Electron regression | ✅ 87/87 | `src/`, `tests/` untouched |
 
 **Gate: PASSED.** Commands registered but unwired to UI — Phase 2 adapter.
+
+## Phase 2 — Frontend Adapter (2026-09-12)
+
+| Case | Result | Notes |
+|------|--------|-------|
+| `T2.1` 10 methods → snake_case `invoke` + arg shapes | ✅ pass | `tests/tauri.adapter.test.js` |
+| `T2.2` `asset://` URL (no `file:`, no `C%3A`) + `file:///` fallback parity | ✅ pass | `src/js/path.ts` |
+| `T2.3` shim (`window.api = tauriApi`), 13 call sites intact | ✅ pass | source check; `renderer.js` copied + 3-line header |
+| `T2.4` keyboard/a11y (`role=button`, `aria-valuenow`) preserved | ✅ pass | source check; full `styles.css` + `index.html` port |
+| `T2.5` `onDragDropEvent` native drop (webkit path kept as no-op) | ✅ pass | source check; `dragDropEnabled: true` |
+| `T2.6` `beforeunload` `saveConfig` path intact | ✅ pass | source check |
+| `npm run build` (tsc + vite, 16 modules) | ✅ pass | |
+| `cargo test` regression (Phase 1) | ✅ 13/13 | |
+| `npx tauri build` full renderer bundle | ✅ pass | `nsis 1.6MB`, `msi 2.3MB` |
+| `npm test` Electron regression | ✅ 87/87 | `src/`, `tests/` untouched |
+| Manual same-folder render identical (`tauri dev` vs Electron) | ⏳ PENDING | Needs a display; run `tauri-poc` exe, open a video folder, compare with Electron |
+
+**Gate: PASSED (auto).** Manual visual check left to user — Phase 3+ unaffected (backend/frontend decoupled via `invoke` surface, already tested).
