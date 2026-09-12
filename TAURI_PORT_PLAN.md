@@ -61,12 +61,12 @@ Frontend reuse: `100%` of `src/renderer/styles.css`, `~80%` of `index.html`/`ren
 
 ## 3. Phase Plan (parallel, no `main` edits until gate)
 
-### Phase 0 — Spike (1–2d, 3MB hello-world)
-- Init: `npm create tauri-app@latest tauri-poc -- --template vanilla` (Vite), `cd tauri-poc && npm i`
-- Copy `src/renderer/index.html` + `styles.css` → `tauri-poc/src/`, stub `renderer.js` with hardcoded 2 videos, `video.src = convertFileSrc('C:\\Vids\\alpha.mp4')`
-- Config: `tauri.conf.json` `identifier`, `windows: {webviewInstallMode: downloadBootstrapper}`, `capabilities/default.json` minimal `fs:allow-read $VIDEO/*`
-- CI smoke: `tauri-poc/README.md` bundle size `~8MB` screenshot.
-- **Accept:** `cargo tauri dev` plays video via `asset://`, `~8MB` bundle proves thesis.
+### Phase 0 — Spike ✅ DONE (2026-09-12, commit `67b4b13`)
+- Init: `npx -y create-tauri-app@latest tauri-poc --manager npm --template vanilla-ts --identifier com.rustyplayer.app --tauri-version 2 --yes`, `cd tauri-poc && npm i`
+- Stub gallery (2 hardcoded videos) + `convertFileSrc` play wiring in `src/main.ts`, palette port in `src/styles.css`, `asset:` CSP in `index.html` + `tauri.conf.json`
+- Config: `productName RustyPlayer`, `1200×800`, `dragDropEnabled: true`, `targets: "all"`, `asset:` CSP
+- **Tests run:** `npm run build` (tsc+vite, 7 modules, 264ms) ✅, `npx tauri build` ✅ (`nsis 1.3MB` + `msi 1.9MB` vs Electron `212MB`), `npm test` Electron `87/87` ✅ (untouched)
+- **Exit gate (passed):** release bundles exist + `npm test 87` green. No Rust commands yet — that's Phase 1.
 
 ### Phase 1 — Backend Parity (3–5d, Rust commands)
 | Electron `src/main/main.js` | Tauri `src-tauri/src/commands.rs` | Notes |
@@ -85,33 +85,67 @@ Frontend reuse: `100%` of `src/renderer/styles.css`, `~80%` of `index.html`/`ren
 | `generate-thumbnail` `main.js:325` | deferred to `thumbnail.rs` (Phase 3) | keep `fs::metadata` cache + `null` fallback parity |
 
 - `tauri.conf.json` capabilities: per §1.1 least-privilege (NOT `path:all` / `shell:allowOpen`).
-- **Tests:** `cargo test` for `is_valid_tags/bounds/sanitize`, `scan_folder` tempdir (mirror `tests/main.test.js:58`).
+- **Test cases (new `src-tauri/src/*` `#[cfg(test)]`, mirror `tests/main.test.js:58` tempdir fixtures):**
+  - `T1.1` validation ports: `is_valid_tags` (20×64, non-array reject, 21 tags reject), `is_valid_bounds` (400–5000×300–4000, NaN reject), `sanitize_config` drops unknown/`__proto__` keys
+  - `T1.2` `scan_folder`: tempdir with `a.mp4/b.webm/c.mov/d.txt` → 3 videos sorted; empty dir → `[]`; missing dir → `[]` no panic; relative path → reject
+  - `T1.3` sidecar: valid `.json` tags loaded; malformed JSON → `.bak` + `[]`; `>10KB` → `.bak` + `[]`; missing → `[]` (no error)
+  - `T1.4` `save_video_tags`: round-trip; wrong ext (`.txt`) reject; 65-char tag reject; oversized JSON reject
+  - `T1.5` config atomicity: `save_config` → file parses; corrupt existing config → `.bak` + `{}`; concurrent saves serialized (Mutex, no interleave)
+  - `T1.6` recents: dedup + cap 10 + relative reject
+  - `T1.7` `open_in_explorer`: missing file → no-op; `.exe` → deny; relative → deny
+  - `T1.8` `clippy -- -D warnings` clean
+- **Exit gate (blocks Phase 2):** `cargo test` all green + `clippy` clean + `npm test` Electron `87/87` still green + `cargo fmt --check` clean. Record results in `tauri-poc/TEST_LOG.md`.
 
 ### Phase 2 — Frontend Adapter (3–4d with learning curve)
 - `tauri-poc/src/js/tauriIpc.ts`: mirror ALL 10 `window.api` methods (`src/preload/preload.js:1`): `openFolder/scanFolder/getVideoTags/saveVideoTags/openInExplorer/getConfig/saveConfig/getRecentFolders/addRecentFolder/generateThumbnail` → `invoke('scan_folder',{folderPath})` etc. (snake_case).
 - Adapter wiring (NO dynamic `await import` — `index.html:66` is classic script, top-level await = SyntaxError): ship static `tauri-shim.js` before `renderer.js` doing `window.api ??= tauriIpc`, OR migrate to Vite `type=module` + static `import {api as tauriApi}`. Replace all ~13 `window.api.*` sites (`renderer.js:93,108,127,137,203,239,301,468,962,975,1046,1073,1097`). Keep `debounce`, `browseMode`, `resizeHandle` `aria-valuenow`, `contextMenu` `role=menu` (`renderer.js:480`).
 - `pathToFileURL` `renderer.js:72` → `src/js/path.ts`: `resolve(p)=>__TAURI__?convertFileSrc(p):pathToFileURL(p)` applied at all 4 sites (`vid.src :199`, `img.src :207`, `playVideo.src :686`, `restoreState.src :983` incl. `thumbPath`) + CSP `asset:` fix (§1.1).
-- Drag-drop: `webkitGetAsEntry().isDirectory` + `file.path` (`renderer.js:1028/1031`) are Electron-only → `getCurrentWebview().onDragDropEvent(e=>{if(e.payload.type==='drop')openAndRenderFolder(e.payload.paths[0])})`, keep overlay `:1013`, set `fileDropEnabled:true`.
+- Drag-drop: `webkitGetAsEntry().isDirectory` + `file.path` (`renderer.js:1028/1031`) are Electron-only → `getCurrentWebview().onDragDropEvent(e=>{if(e.payload.type==='drop')openAndRenderFolder(e.payload.paths[0])})`, keep overlay `:1013`, `dragDropEnabled: true` already in spike config (NOT `fileDropEnabled` — schema rejects it).
 - Chunked `MAX_VISIBLE=60` + `CHUNK=30` (`renderer.js:331`) stays; paginate `Show more` remainder in 60-chunks (unbounded append = OOM, violates memory rule).
-- **Tests:** keep `87` green untouched; new `tests/tauri.adapter.test.js` mocking `global.__TAURI_INVOKE__` + shim parity (same fixtures as `renderer.test.js:24`), incl. `beforeunload` save test.
-- **Accept:** Same folder renders same `tagChips` + `gallery` + `titlebar` in both builds.
+- **Test cases (new `tauri-poc/tests/tauri.adapter.test.js`, same fixtures as `renderer.test.js:24`):**
+  - `T2.1` all 10 adapter methods call `invoke` with snake_case command + args (mock `global.__TAURI_INVOKE__`, assert command names)
+  - `T2.2` `path.resolve`: absolute Windows path → `asset://` URL (no `file:`, no `C%3A`); fallback `pathToFileURL` when `__TAURI__` absent
+  - `T2.3` gallery parity: same fixture folder renders same count + `tagChips` + `titlebar` in shim vs `window.api` mode
+  - `T2.4` keyboard/a11y preserved: thumbs `role=button` + Enter/Space play, context menu `role=menu`, `aria-valuenow` on resize
+  - `T2.5` drag-drop handler accepts `payload.paths[0]` directories, ignores files-only drops without crash
+  - `T2.6` `beforeunload` triggers config save via adapter (no async loss — explicit save path)
+- **Exit gate (blocks Phase 3):** adapter tests green + `cargo test` (Phase 1) still green + `npm test` Electron `87/87` green + manual same-folder render identical in `tauri dev` vs Electron. Log in `TEST_LOG.md`.
 
 ### Phase 3 — Thumbnails Rust (2–3d; LICENSE WARNING)
 - Current `src/main/main.js:325` stub `try require('fluent-ffmpeg')` → `null` if missing. In Tauri: prefer official `tauri-plugin-shell` sidecar over community `ffmpeg-sidecar` crate. Binary at `src-tauri/binaries/ffmpeg-x86_64-pc-windows-msvc.exe`, config `bundle > externalBin: ["binaries/ffmpeg"]` (triple/`.exe` stripped), PLUS `capabilities shell:allow-spawn + allow-execute` scoped to `binaries/ffmpeg` (plan previously listed only `allowOpen` — spawn would be denied). `screenshots {timestamps:['00:00:02'], size:'320x?'}` → `*.thumb.jpg` cache, `fs::metadata` check first, keep `null` fallback parity (`main.js:343`).
 - ⚠️ LICENSE: sidecar crate may be MIT but the **ffmpeg binary itself (gyan/BtbN full) is GPL-3.0** — same burden as rejected `ffmpeg-static`, +25–80MB kills the `12–20MB` goal (§0). Options: (a) disclose + attribution/source-offer and accept `~40–90MB`, (b) zero-dep `<video>`+canvas thumbnails, (c) stripped LGPL/nano build feature-gated. Default: (b) first, (a) opt-in.
-- **Accept:** Folder with `alpha.mp4` produces `alpha.mp4.thumb.jpg` `320w`, `createThumbnailElement` `renderer.js:193` swaps `video` → `img.thumb-image`.
+- **Test cases:**
+  - `T3.1` cache-hit: existing `*.thumb.jpg` returned without spawning ffmpeg (assert no spawn)
+  - `T3.2` generation (option a only): `alpha.mp4` → `alpha.mp4.thumb.jpg` `320w` exists; corrupt/zero-byte video → `null` no crash
+  - `T3.3` fallback parity: ffmpeg absent → `null` (matches Electron `main.js:343`), gallery keeps `<video>` element
+  - `T3.4` canvas path (option b): thumbnail `<img>` from `<video>` frame at `2s`, aspect preserved
+  - `T3.5` bundlesize recorded: with/without ffmpeg binary (gate input for Phase 4)
+- **Exit gate (blocks Phase 4):** `T3.1+T3.3` (+`T3.2` or `T3.4` per chosen option) green + `cargo test` + `npm test 87` green. Log in `TEST_LOG.md`.
 
 ### Phase 4 — Pack/Sign/Update (3–4d with learning curve)
 - `tauri.conf.json` (v2 keys — `bundle.windows.portable` object does NOT exist; `portable` is NOT a valid target at all, schema: deb/rpm/appimage/nsis/msi/app/dmg/all): `package > productName RustyPlayer`, `bundle > identifier com.rustyplayer.app`, `bundle > targets: ["nsis"]` (+`"msi"` optional; spike uses `"all"`), `bundle > windows: {nsis: {...}, wix: {...}}`, `bundle > resources: []`, `build > beforeDevCommand npm run dev`, `plugins > updater {pubkey PINNED, endpoints: ["https://github.com/rajandiappan/RustyPlayer/releases/latest/download"]}` + `updater: {active:true}`. `Cargo.toml` MUST include `tauri-plugin-updater + tauri-plugin-log + tauri-plugin-opener` (previously omitted).
 - Signing: `tauri signer generate` → `TAURI_SIGNING_PRIVATE_KEY` + `_PASSWORD` as `secrets.*` (vs Electron `CSC_LINK` in `build.yml:42`). Document `tauri signer sign`.
 - CI `tauri-poc/.github/workflows/tauri.yml` (new, keep `npm run pack --publish never` on main): `dtolnay/rust-toolchain@stable (1.79+)` + `rustup target`, Node 22, `tauri-apps/tauri-action@v0` with `GITHUB_TOKEN`, signing secrets on tag builds ONLY, `includeUpdaterJson: true`. Do NOT use empty `GITHUB_REF_NAME` as `APP_VERSION` on push/PR.
 - Drop `scripts/afterPack.js` (no locales/swiftshader in WebView2 bundle — correct to remove).
-- **Accept:** `cargo tauri build` → `bundle/nsis/RustyPlayer_1.0.0_x64-setup.exe` `~15MB` (spike PROVEN 2026-09-12: `1.3MB` nsis + `1.9MB` msi for stub; real app est. `8–20MB`; `~40–90MB` with ffmpeg opt-in), updater JSON generated.
+- **Test cases (CI `.github/workflows/tauri.yml` + local):**
+  - `T4.1` `cargo tauri build` succeeds unsigned on branch (no secrets) — proves secrets-optional path
+  - `T4.2` bundlesize gate: any `.exe` >90MB fails (tighten to 25MB once canvas thumbs land); record nsis+msi sizes in `TEST_LOG.md`
+  - `T4.3` updater JSON: `latest.json` emitted with `pubkey`-signed entries on tag builds (draft release); branch builds skip signing but still bundle
+  - `T4.4` installer smoke: nsis installs, launches, window `1200×800` + title `RustyPlayer`, `asset:` CSP no console errors
+  - `T4.5` regression re-run: `cargo test` + adapter tests + `npm test 87` all green on the release commit
+- **Exit gate (blocks Phase 5):** `T4.1–T4.5` green + CI `tauri.yml` green on `main`. Log in `TEST_LOG.md`.
 
 ### Phase 5 — Parity Gate → Cutover (1–2d)
-- Manual matrix on same video folder: scan time (parallel `Promise.all` vs `join_all`), thumbnails appear, `playVideo` `AbortError` guard `renderer.js:642`, OOM `MAX_VISIBLE 60` `renderer.js:331` + capped DOM, CSP `index.html:6` → `capabilities`.
-- Automated: `cargo test` + `npm test 87` + `npx c8 --lines 80` `80.49` + `cargo tauri build` `bundlesize <25MB` in CI.
-- **Gate decision:** If gate passes, `git mv src src-electron-legacy && git mv tauri-poc/src src && git mv tauri-poc/src-tauri src-tauri` + update `README`, `AGENTS.md:9` `Electron → Tauri`. If fails, stay on `Electron` — POC folder isolated, zero regression.
+- **Parity matrix (same video folder, both builds — automated where possible, manual where noted):**
+  - `T5.1` scan parity (auto): same folder → identical video list/count/tags in `invoke('scan_folder')` vs `window.api.scanFolder`
+  - `T5.2` render parity (auto): same `tagChips` + gallery count + `titlebar` text for default + filtered views
+  - `T5.3` playback (manual): play/pause/seek/mute, auto-advance + toast, NO `AbortError` toast on rapid nav (guard ported from `renderer.js:642`)
+  - `T5.4` OOM (auto+manual): 200-video folder → DOM nodes capped (~60 + pagination), no freeze; scroll smooth
+  - `T5.5` errors (auto): corrupt sidecar → `.bak` + gallery intact; missing folder → empty state; ENOSPC save → `false` surfaced
+  - `T5.6` a11y spot-check (manual): landmarks, `role=menu` nav, `aria-modal` focus return, `aria-valuenow` resize keys
+  - `T5.7` perf: scan time within 2× Electron, `bundlesize <25MB` (CI), startup `<500ms`, idle `<80MB`
+- Automated: `cargo test` + adapter tests + `npm test 87` + `npx c8 --lines 80` + CI `tauri.yml` green.
+- **Gate decision:** ALL `T5.1–T5.7` pass → `git mv src src-electron-legacy && git mv tauri-poc/src src && git mv tauri-poc/src-tauri src-tauri` + update `README`, `AGENTS.md:9` `Electron → Tauri`. ANY fail → stay on `Electron`, file fix-forward tasks, re-run gate. POC isolation = zero regression risk either way. Full matrix results in `TEST_LOG.md`.
 
 ### Phase 6 — Mobile (separate milestone, not in size gate; under-specified — details)
 - Toolchain: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android` + Android SDK/NDK + `JAVA_HOME`/`ANDROID_HOME`/`NDK_HOME` (CI job needed — none defined yet).
@@ -119,7 +153,13 @@ Frontend reuse: `100%` of `src/renderer/styles.css`, `~80%` of `index.html`/`ren
 - Scoped storage: `path.isAbsolute` + `fs $VIDEO/**` model BREAKS — `scan_folder` must accept `content://` URIs via SAF/`MediaStore` picker (`tauri-plugin-fs` + `dialog`), not dir walk.
 - UI: 25% resizable sidebar + hover tooltips + right-click menu unusable on touch → bottom-sheet/drawer + ≥44px targets + media-query rework of `styles.css`.
 - Codecs: explicit matrix — `MP4/H.264` safe, `WebM/VP9` partial, `MOV/HEVC` often fails on OEM WebView (desktop WebView2 ≈ Chromium, mobile varies). Plan transcode-or-skip, not "test variance".
-- **Accept (mobile gate):** internal-track APK plays `MP4` from `MediaStore`, touch nav passes, backed by Android CI job.
+- **Test cases (separate Android CI job, new `tauri-android.yml`):**
+  - `T6.1` toolchain: `cargo test --target aarch64-linux-android` compiles; SDK/NDK present in CI
+  - `T6.2` permissions: fresh install requests `READ_MEDIA_VIDEO` (API 33+) / `READ_EXTERNAL_STORAGE` (≤32), deny → graceful empty state
+  - `T6.3` `content://` scan: `MediaStore` folder → video list (no `path.isAbsolute` assumption)
+  - `T6.4` codec matrix: `MP4/H.264` plays, `WebM/VP9` + `MOV/HEVC` per-device result recorded (transcode-or-skip decision)
+  - `T6.5` touch: bottom-sheet nav, ≥44px targets, no hover/right-click dependency
+- **Exit gate:** `T6.1–T6.5` on internal-track APK. Desktop gates unaffected.
 
 ---
 
@@ -155,9 +195,18 @@ Frontend reuse: `100%` of `src/renderer/styles.css`, `~80%` of `index.html`/`ren
 ## 6. Testing Strategy (tauri-driver NOT viable — keep jsdom)
 
 - **Unit:** `cargo test is_valid_tags/is_valid_bounds/sanitize/scan_folder` (tempdir mirror `tests/main.test.js:58`, `10KB` cap, `.bak`); coverage via `cargo-tarpaulin`/`llvm-cov` (c8 `package.json:30` covers only `src/**/*.js`, NOT `src-tauri/*.rs` — separate gates until cutover).
-- **Frontend:** keep `npm test 87` untouched; new `tests/tauri.adapter.test.js` mocking `global.__TAURI_INVOKE__` + shim parity (same fixtures as `renderer.test.js:24`).
+- **Frontend:** keep `npm test 87` untouched; new `tauri-poc/tests/tauri.adapter.test.js` mocking `global.__TAURI_INVOKE__` + shim parity (same fixtures as `renderer.test.js:24`).
 - **e2e:** do NOT adopt `tauri-driver` (needs WebDriver+harness, flaky, zero coverage) — keep `jsdom` stub `tests/e2e-smoke.spec.js:1` + extend to `asset://`/`convertFileSrc` path, plus `cargo tauri build --debug` manual open → play → auto-advance.
 - **perf:** `tauri build` `bundlesize <25MB` (no-ffmpeg) / `<90MB` (ffmpeg opt-in), `startup <500ms`, `idle <80MB`.
+
+## 6.2 Regression Policy (anti-regression — applies to EVERY phase)
+
+1. **No phase is marked done unless its exit gate passes in full.** Partial green = phase stays open with fix-forward tasks.
+2. **End-of-phase regression (mandatory, every phase):** re-run ALL prior gates in order —
+   `cargo test` (Phase 1) → adapter tests (Phase 2) → thumbnail tests (Phase 3) → `cargo tauri build` smoke (Phase 4) → `npm test` Electron `87/87` (always). A later phase that breaks an earlier gate blocks on the fix, not on new work.
+3. **Evidence log:** append-only `tauri-poc/TEST_LOG.md` per phase — date, commit, each `Tn.m` case with pass/fail + duration, bundle sizes, manual checklist initials. No log entry = gate not passed.
+4. **Electron frozen:** `src/`, `tests/`, `package.json`, workflows Electron-side are read-only during the port. Any Electron change needs its own `npm test 87` run + justification in the commit message.
+5. **CI as backstop:** `tauri.yml` (`guard` skip pre-POC → full test/build once POC exists) runs on every push/PR touching `tauri-poc/**`; Electron `build.yml` runs on every push. Red CI = stop, fix, re-run — never stack new phases on red.
 
 ## 6.1 Multi-Agent Execution (required — plan previously had none)
 
@@ -179,12 +228,12 @@ Coordination: `tauri-poc/` isolated, `main` frozen; daily parity check (same fol
 
 ---
 
-## 8. Next Actions (1-by-1, you asked)
+## 8. Next Actions (status)
 
-1. **Init POC spike** (`Phase 0`) — `npm create tauri-app tauri-poc` + copy renderer + `~8MB` proof.
-2. **Port `scan_folder` + `config`** (`Phase 1`) — `commands.rs` + `capabilities`.
-3. **Wire `tauriIpc` adapter** (`Phase 2`) — `convertFileSrc`.
-4. **Thumbnail sidecar** (`Phase 3`).
-5. **Bundler/updater** (`Phase 4`).
+1. ✅ **Init POC spike** (`Phase 0`) — done `67b4b13` (`1.3MB` nsis + `1.9MB` msi).
+2. **Port `scan_folder` + `config`** (`Phase 1`) — `commands.rs` + `capabilities`, exit on `T1.1–T1.8` (§6.2 regression applies).
+3. **Wire `tauriIpc` adapter** (`Phase 2`) — `convertFileSrc` + `tests/tauri.adapter.test.js` (`T2.1–T2.6`).
+4. **Thumbnail sidecar** (`Phase 3`) — decision (b) canvas vs (a) ffmpeg opt-in + `T3.1–T3.5`.
+5. **Bundler/updater** (`Phase 4`) — pubkey paste (see `docs/TAURI_SIGNING.md`) + `T4.1–T4.5`.
 
-Say `go` and I’ll run `Phase 0` init (creates `tauri-poc/` without touching `main`).
+Say `go phase 1` and Streams A–D launch in parallel (Streams defined in §6.1).
