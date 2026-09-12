@@ -1,0 +1,182 @@
+name: Tauri POC — Test and Build
+
+# Parallel POC pipeline. Electron workflows (build/portable/installer) are untouched.
+# This workflow is a NO-OP until Phase 0 creates tauri-poc/src-tauri/tauri.conf.json,
+# so `main` stays green pre-migration. After cutover it becomes the primary release path.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths:
+      - 'tauri-poc/**'
+      - '.github/workflows/tauri.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tauri-poc/**'
+      - '.github/workflows/tauri.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: tauri-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write # needed for tauri-action updater JSON + GitHub releases on tags
+  actions: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      poc_exists: ${{ steps.check.outputs.poc_exists }}
+      is_tag: ${{ steps.check.outputs.is_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check POC exists + ref type
+        id: check
+        shell: bash
+        run: |
+          if [ -f "tauri-poc/src-tauri/tauri.conf.json" ]; then
+            echo "poc_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "poc_exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::tauri-poc not present yet (pre-Phase 0) — downstream jobs will skip."
+          fi
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "is_tag=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_tag=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test:
+    needs: guard
+    if: needs.guard.outputs.poc_exists == 'true'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: tauri-poc/package-lock.json
+
+      - name: Setup Rust (1.79+ for Tauri 2.x)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-poc/src-tauri -> target
+
+      - name: Install frontend deps
+        working-directory: tauri-poc
+        run: npm ci
+
+      - name: Rust unit tests (commands/config validation ports)
+        working-directory: tauri-poc/src-tauri
+        run: cargo test --locked
+
+      - name: Frontend adapter tests (tauriIpc parity, 87 Electron tests untouched)
+        working-directory: tauri-poc
+        run: npm test --if-present
+
+  build:
+    needs: [guard, test]
+    # Run on push/main + tags when POC exists; PRs run test only (no signing, no release).
+    # `test` is skipped (not failed) when no PR changes? `needs` with skipped test blocks build —
+    # so allow build when test skipped on direct push: use always() + result check.
+    if: |
+      always() &&
+      needs.guard.outputs.poc_exists == 'true' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped')
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: tauri-poc/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-poc/src-tauri -> target
+          # Shared cache key prefix with `test` job speeds up build.
+
+      - name: Install frontend deps
+        working-directory: tauri-poc
+        run: npm ci
+
+      - name: Build Tauri app (nsis + portable, updater JSON)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing: present ONLY on tags (see docs/TAURI_SIGNING.md).
+          # Empty on branch pushes/PRs → unsigned build, still verifies bundler.
+          # NEVER log these values; tauri-action reads them directly.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Windows code signing (optional, mirrors Electron CSC_LINK pattern):
+          # TAURI_SIGNING_* is updater signing; Authenticode still uses CSC_LINK if configured.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        with:
+          projectPath: tauri-poc
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('RustyPlayer {0} (Tauri)', github.ref_name) || '' }}
+          releaseBody: ${{ startsWith(github.ref, 'refs/tags/v') && 'Tauri parallel-POC build — see TAURI_PORT_PLAN.md parity gate.' || '' }}
+          releaseDraft: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          prerelease: false
+          includeUpdaterJson: true
+          # tauri-action builds `bundle.targets` from tauri.conf.json (nsis + portable).
+          args: --target x86_64-pc-windows-msvc
+
+      - name: Bundlesize gate (<25MB no-ffmpeg / <90MB ffmpeg opt-in)
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_DIR="tauri-poc/src-tauri/target/release/bundle"
+          echo "== bundle sizes =="
+          find "$BUNDLE_DIR" -maxdepth 3 \( -name '*.exe' -o -name '*.msi' \) -exec du -h {} \; || echo "(no installers found — check tauri.conf.json bundle.targets)"
+          # Fail if any portable/nsis exe exceeds hard cap (90MB allows ffmpeg opt-in; tighten to 25MB once canvas thumbs land).
+          FAIL=0
+          while IFS= read -r f; do
+            BYTES=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f")
+            MAX=$((90*1024*1024))
+            if [ "$BYTES" -gt "$MAX" ]; then echo "::error::oversize $f ($BYTES bytes > 90MB)"; FAIL=1; fi
+          done < <(find "$BUNDLE_DIR" -maxdepth 3 -name '*.exe')
+          exit $FAIL
+
+      - name: Upload Tauri artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-windows
+          path: |
+            tauri-poc/src-tauri/target/release/bundle/nsis/*.exe
+            tauri-poc/src-tauri/target/release/bundle/portable/*.exe
+            tauri-poc/src-tauri/target/release/bundle/latest.json

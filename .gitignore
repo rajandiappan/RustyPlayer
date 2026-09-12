@@ -3,3 +3,16 @@ dist/
 *.log
 .DS_Store
 Thumbs.db
+
+# Rust / Tauri (POC isolated until parity gate — see TAURI_PORT_PLAN.md)
+src-tauri/target/
+src-tauri/WixTools/
+tauri-poc/node_modules/
+tauri-poc/src-tauri/target/
+tauri-poc/src-tauri/WixTools/
+# Signing secrets — NEVER commit (see docs/TAURI_SIGNING.md)
+*.key
+*.pfx
+*.p12
+*.jks
+keystore.properties
