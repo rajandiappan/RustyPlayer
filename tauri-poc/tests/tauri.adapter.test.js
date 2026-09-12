@@ -24,8 +24,10 @@ const fixtures = {
 };
 
 // Mock the Tauri IPC bridge before importing the adapter.
+// NOTE: real window.__TAURI__ is an OBJECT, not boolean true — the mock must
+// match reality (a `=== true` check here once hid the file:// fallback bug).
 globalThis.window = {
-  __TAURI__: true,
+  __TAURI__: { core: {}, event: {} },
   __TAURI_INTERNALS__: {
     invoke: async (cmd, args) => {
       calls.push({ cmd, args });
@@ -68,6 +70,20 @@ describe('tauri adapter — T2.1 all 10 methods map to snake_case commands', () 
     assert.deepEqual(calls[1].args, { folderPath: 'C:\\Vids' });
     assert.deepEqual(calls[3].args, { videoPath: 'C:\\Vids\\a.mp4', tags: ['rock'] });
     assert.deepEqual(calls[6].args, { data: { volume: 0.5 } });
+  });
+});
+
+describe('tauri adapter — T2.2b __TAURI__ object shape (regression)', () => {
+  test('object (real) and boolean (legacy mock) both detect Tauri; absent does not', async () => {
+    const pathMod = await import('../src/js/path.ts');
+    globalThis.window.__TAURI__ = { core: {} };
+    assert.equal(pathMod.isTauri(), true);
+    globalThis.window.__TAURI__ = true;
+    assert.equal(pathMod.isTauri(), true);
+    delete globalThis.window.__TAURI__;
+    assert.equal(pathMod.isTauri(), false);
+    globalThis.window.__TAURI__ = { core: {}, event: {} };
+    assert.equal(pathMod.isTauri(), true);
   });
 });
 

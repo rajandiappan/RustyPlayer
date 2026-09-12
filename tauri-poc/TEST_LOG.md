@@ -125,3 +125,17 @@ user-picked folders can live anywhere) + `http(s)://asset.localhost` added to
 `img-src`/`media-src` in `tauri.conf.json` CSP and `index.html` meta CSP.
 Rebuilt, relaunched: ALIVE, **26 MB**. Lesson baked into plan §1.1.
 **Verify:** open a real video folder — thumbnails + playback should work now.
+
+## isTauri object-shape bug (2026-09-12, found via `debug_report` probe)
+
+**Probe evidence** (`debug-last-play.json`): `isTauri: true` (probe's `!!` check)
+but `src: file:///C:/Users/Raj/Videos/Demo/157551-815078267.mp4` with
+`MEDIA_ELEMENT_ERROR: Media load rejected by URL safety check` — WebView2
+blocking `file://`, which also explains blank gallery thumbnails (same helper).
+**Root cause:** real `window.__TAURI__` is an OBJECT, but `path.ts isTauri()`
+used strict `=== true` → always false → `file:///` fallback. The adapter test
+mock used boolean `true`, hiding it.
+**Fix:** truthiness check in `isTauri()`; mock now uses an object + new `T2.2b`
+regression test (object/boolean/absent). Rebuilt, relaunched ALIVE — probe file
+reset, awaiting one click to confirm `asset://` src.
+**Verify:** click the MP4 again — playback + thumbnails should work now.
