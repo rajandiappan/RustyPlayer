@@ -132,7 +132,7 @@ jobs:
         working-directory: tauri-poc
         run: npm ci
 
-      - name: Build Tauri app (nsis + portable, updater JSON)
+      - name: Build Tauri app (nsis, updater JSON)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -178,5 +178,5 @@ jobs:
           name: tauri-windows
           path: |
             tauri-poc/src-tauri/target/release/bundle/nsis/*.exe
-            tauri-poc/src-tauri/target/release/bundle/portable/*.exe
+            tauri-poc/src-tauri/target/release/bundle/msi/*.msi
             tauri-poc/src-tauri/target/release/bundle/latest.json

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Phase 0 spike: asset:// replaces file:// (see TAURI_PORT_PLAN.md §1.1).
+         Full CSP lands in Phase 2; Vite dev needs 'unsafe-inline' for HMR. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: data:; media-src 'self' asset: blob:; connect-src 'self' ipc: http://ipc.localhost" />
+    <title>RustyPlayer (Tauri POC)</title>
+    <script type="module" src="/src/main.ts" defer></script>
+  </head>
+
+  <body>
+    <div class="titlebar"><span id="titlebarText">RustyPlayer (Tauri POC)</span></div>
+    <div class="app">
+      <aside class="sidebar" aria-label="Video gallery">
+        <div class="toolbar"><span class="folder-info" id="folderInfo">POC stubs (no backend yet)</span></div>
+        <div class="gallery" id="gallery" role="list"></div>
+      </aside>
+      <main class="player" aria-label="Video player">
+        <div class="video-wrapper"><video id="videoPlayer" controls preload="metadata"></video></div>
+        <div class="controls"><span class="time-display" id="srcInfo">click a stub → src set via convertFileSrc (asset://)</span></div>
+      </main>
+    </div>
+  </body>
+</html>
