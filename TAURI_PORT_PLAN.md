@@ -147,19 +147,12 @@ Frontend reuse: `100%` of `src/renderer/styles.css`, `~80%` of `index.html`/`ren
 - Automated: `cargo test` + adapter tests + `npm test 87` + `npx c8 --lines 80` + CI `tauri.yml` green.
 - **Gate decision:** ALL `T5.1–T5.7` pass → `git mv src src-electron-legacy && git mv tauri-poc/src src && git mv tauri-poc/src-tauri src-tauri` + update `README`, `AGENTS.md:9` `Electron → Tauri`. ANY fail → stay on `Electron`, file fix-forward tasks, re-run gate. POC isolation = zero regression risk either way. Full matrix results in `TEST_LOG.md`.
 
-### Phase 6 — Mobile (separate milestone, not in size gate; under-specified — details)
-- Toolchain: `rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android` + Android SDK/NDK + `JAVA_HOME`/`ANDROID_HOME`/`NDK_HOME` (CI job needed — none defined yet).
-- Manifest: `READ_MEDIA_VIDEO` (API 33+) vs `READ_EXTERNAL_STORAGE` (≤32), `keystore.properties` + Play signing (rotation/secret plan needed — vs `CSC_LINK`).
-- Scoped storage: `path.isAbsolute` + `fs $VIDEO/**` model BREAKS — `scan_folder` must accept `content://` URIs via SAF/`MediaStore` picker (`tauri-plugin-fs` + `dialog`), not dir walk.
-- UI: 25% resizable sidebar + hover tooltips + right-click menu unusable on touch → bottom-sheet/drawer + ≥44px targets + media-query rework of `styles.css`.
-- Codecs: explicit matrix — `MP4/H.264` safe, `WebM/VP9` partial, `MOV/HEVC` often fails on OEM WebView (desktop WebView2 ≈ Chromium, mobile varies). Plan transcode-or-skip, not "test variance".
-- **Test cases (separate Android CI job, new `tauri-android.yml`):**
-  - `T6.1` toolchain: `cargo test --target aarch64-linux-android` compiles; SDK/NDK present in CI
-  - `T6.2` permissions: fresh install requests `READ_MEDIA_VIDEO` (API 33+) / `READ_EXTERNAL_STORAGE` (≤32), deny → graceful empty state
-  - `T6.3` `content://` scan: `MediaStore` folder → video list (no `path.isAbsolute` assumption)
-  - `T6.4` codec matrix: `MP4/H.264` plays, `WebM/VP9` + `MOV/HEVC` per-device result recorded (transcode-or-skip decision)
-  - `T6.5` touch: bottom-sheet nav, ≥44px targets, no hover/right-click dependency
-- **Exit gate:** `T6.1–T6.5` on internal-track APK. Desktop gates unaffected.
+### Phase 6 — Mobile — REMOVED (2026-09-12, owner decision: desktop-only)
+
+Android/iOS is out of scope. RustyPlayer ships Windows desktop (nsis/msi) via
+this plan; no `mobile init`, no keystore, no scoped-storage work, no touch rework.
+If ever revisited, the audit notes survive in git history (`8e2996d` and earlier).
+Desktop gates are unaffected.
 
 ---
 
@@ -215,7 +208,7 @@ Frontend reuse: `100%` of `src/renderer/styles.css`, `~80%` of `index.html`/`ren
 | **A Rust backend** | `tauri-poc/src-tauri/{commands,config,thumbnail}.rs`, `capabilities/default.json` | `scan_folder`/`config`/`tags` + validation ports, `cargo test` mirror of `main.test.js` | `cargo test` green |
 | **B Frontend adapter** | `tauriIpc.ts`, `path.ts`, `tauri-shim.js`, `tests/tauri.adapter.test.js` | `__TAURI__` flag, `convertFileSrc` at 4 sites, drag-drop event, keep 87 green | `npm test 87` + adapter test green |
 | **C Thumbs/build** | `thumbnail.rs`, `tauri.conf.json`, `tauri.yml`, updater/signing | sidecar `externalBin` + spawn scope, bundler, CI, bundlesize | `cargo tauri build` + `<25MB` |
-| **D QA/mobile** | parity matrix, touch CSS, Android SDK/NDK CI spike | gate matrix (scan/thumbs/AbortError/OOM/CSP), scoped-storage spike | parity gate pass |
+| **D QA** | parity matrix (`PARITY.md`), perf spot-checks | gate matrix (scan/thumbs/AbortError/OOM/CSP) | parity gate pass |
 
 Coordination: `tauri-poc/` isolated, `main` frozen; daily parity check (same folder → same `tagChips`/`gallery`/auto-advance); cutover only via `git mv` after ALL gates pass. Effort ×1.5–2 vs plan (Rust/capabilities/updater learning): Phase 1 `3–5d→5–8d`, Phase 4 `2d→3–4d`.
 

@@ -79,7 +79,7 @@ tauri-poc/src-tauri/target/
 - [ ] `tauri.yml` present and passing its `guard` skip on `main`
 - [ ] Maintainer ran `tauri signer generate` and stored pubkey ready for Phase 4 paste
 - [ ] (Optional) `CSC_LINK` Authenticode cert ready — else expect SmartScreen warning on test builds
-- [ ] Android deferred: no keystore needed until plan Phase 6 (`keystore.properties` + Play signing, separate milestone)
+- [ ] Mobile out of scope (plan Phase 6 removed): no keystore, no Play signing
 
 ## 6. Troubleshooting
 

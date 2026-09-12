@@ -14,5 +14,3 @@ tauri-poc/src-tauri/WixTools/
 *.key
 *.pfx
 *.p12
-*.jks
-keystore.properties
