@@ -112,3 +112,16 @@ has no `pubkey` — even with `active: false` (found via debug build stderr:
 `active: true`. Rebuilt: `nsis 2.3MB` / `msi 3.3MB`.
 **Verified:** release exe launches, stays ALIVE, working set **24 MB**
 (Electron idle ~168MB). Lesson baked into plan: updater plugin REQUIRES pubkey.
+
+## Playback fix (2026-09-12)
+
+**Symptom:** folder scans, gallery renders, but every video fails with
+`Playback failed: no supported source`.
+**Root cause:** `app.security.assetProtocol` was never enabled — Tauri refuses ALL
+`convertFileSrc` (`asset://`) loads unless `assetProtocol: { enable: true, scope }`
+is set (`tauri.conf.json`). Docs: `v2.tauri.app/security/asset-protocol`.
+**Fix:** `assetProtocol: { enable: true, scope: ["**/*"] }` (`**/*` because
+user-picked folders can live anywhere) + `http(s)://asset.localhost` added to
+`img-src`/`media-src` in `tauri.conf.json` CSP and `index.html` meta CSP.
+Rebuilt, relaunched: ALIVE, **26 MB**. Lesson baked into plan §1.1.
+**Verify:** open a real video folder — thumbnails + playback should work now.

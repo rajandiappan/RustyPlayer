@@ -48,7 +48,8 @@ tauri-poc/
 
 ### 1.1 Capability + validation rules (ports main.js:46-116 — enforce in Rust, not just capabilities)
 - Port `isValidString` (non-empty, ≤2000 for paths / ≤500 default, no `\0`), `isValidTags` (Array ≤20, each ≤64 chars, JSON ≤10KB), `isValidBounds` (400–5000×300–4000, finite), `sanitizeConfig` allow-list (bounds/sidebarWidth 0–100/volume 0–1/lastFolder isAbsolute/lastVideoIndex ≥0/recentFolders ≤10 isAbsolute). `#[serde(deny_unknown_fields)]` + explicit `__proto__` key reject (serde has no proto guard — check manually before merge).
-- CSP replacement for `index.html:6` (`file:` dies under asset://): `img-src 'self' asset: data: blob:; media-src 'self' asset: blob:; connect-src 'self' ipc: http://ipc.localhost; script-src 'self'` (no new unsafe-inline).
+- CSP replacement for `index.html:6` (`file:` dies under asset://): `img-src 'self' asset: http://asset.localhost https://asset.localhost data:; media-src 'self' asset: http://asset.localhost https://asset.localhost blob:; connect-src 'self' ipc: http://ipc.localhost; script-src 'self'` (no new unsafe-inline).
+- `app.security.assetProtocol` is MANDATORY (`tauri.conf.json`): `{ "enable": true, "scope": ["**/*"] }` — without it every `convertFileSrc` load is refused ("no supported source"). Scope is process-global; `**/*` because user-picked folders can live anywhere (tighten later via persisted-scope if needed).
 - Updater: `pubkey` pinned in tauri.conf.json, `https://github.com/.../latest/download` only, secrets `TAURI_SIGNING_PRIVATE_KEY[_PASSWORD]` on tag builds only.
   src/                      — Vite static copy of src/renderer/* (index.html, styles.css, renderer.js adapted)
   src/js/tauriIpc.ts        — adapter: window.api.* → invoke('scan_folder', {folderPath}) etc., feature-flag backend
