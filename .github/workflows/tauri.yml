@@ -128,8 +128,11 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         with:
           tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
-          releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('RustyPlayer {0} (Tauri)', github.ref_name) || '' }}
-          releaseBody: ${{ startsWith(github.ref, 'refs/tags/v') && 'RustyPlayer (Tauri). Pick one asset below: `-setup.exe` installer (recommended), `.msi` for managed/Group-Policy installs, `-portable-win64.zip` for no-install use (needs WebView2). Verify with SHA256SUMS.txt. SmartScreen warning is expected until Authenticode signing lands.' || '' }}
+          # Static strings only (no inline conditionals): only consumed when
+          # tagName is set (tag builds). Inline && / || with special chars
+          # fails workflow evaluation (instant run failure, 2026-09-12).
+          releaseName: 'RustyPlayer (Tauri)'
+          releaseBody: 'Pick one asset below. RustyPlayer_X.Y.Z_x64-setup.exe = recommended installer. RustyPlayer_X.Y.Z_x64_en-US.msi = managed and Group-Policy installs. RustyPlayer-portable-win64.zip = no-install use, needs WebView2 preinstalled. Verify with SHA256SUMS.txt. SmartScreen warning is expected until Authenticode signing lands.'
           releaseDraft: ${{ startsWith(github.ref, 'refs/tags/v') }}
           prerelease: false
           includeUpdaterJson: true
