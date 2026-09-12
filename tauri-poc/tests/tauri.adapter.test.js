@@ -43,6 +43,7 @@ describe('tauri adapter — T2.1 all 10 methods map to snake_case commands', () 
   test('invoke mapping + arg shapes', async () => {
     const { tauriApi } = await import('../src/js/tauriIpc.ts');
     assert.equal(typeof tauriApi.openFolder, 'function');
+    assert.equal(tauriApi.debugReport, undefined); // probe removed after diagnosis
     assert.equal(await tauriApi.openFolder(), 'C:\\Vids');
     assert.deepEqual(await tauriApi.scanFolder('C:\\Vids'), fixtures.scan_folder);
     assert.deepEqual(await tauriApi.getVideoTags('C:\\Vids\\a.mp4'), ['rock']);

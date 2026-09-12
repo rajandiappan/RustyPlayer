@@ -139,3 +139,13 @@ mock used boolean `true`, hiding it.
 regression test (object/boolean/absent). Rebuilt, relaunched ALIVE — probe file
 reset, awaiting one click to confirm `asset://` src.
 **Verify:** click the MP4 again — playback + thumbnails should work now.
+
+## Probe removal + user confirmation (2026-09-12)
+
+- User confirmed: **playback works, "so fast"**. `debug_report` command +
+  `debugReport` adapter method + renderer probe calls all reverted (nothing
+  debug-only remains; adapter test asserts `debugReport === undefined`).
+- Clean-build gate: `cargo 15/15`, `clippy`/`fmt` clean, adapter `4/4`,
+  `npm test 87/87`, `nsis 2.3MB` / `msi 3.3MB`.
+- Left for cutover decision (`PARITY.md`): manual T5.2/T5.4/T5.6 matrix,
+  T4.3 signing secret, T4.4 installer smoke.

@@ -11,6 +11,13 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
+                // File target so asset-protocol errors survive without a console:
+                // %APPDATA%\com.rustyplayer.app\logs\rustyplayer.log
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::LogDir {
+                        file_name: Some("rustyplayer".into()),
+                    },
+                ))
                 .build(),
         )
         // Phase 4: updater wired but INACTIVE until real keys exist
