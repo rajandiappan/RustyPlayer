@@ -218,17 +218,18 @@ Coordination: `tauri-poc/` isolated, `main` frozen; daily parity check (same fol
 
 ## 7. Rollback
 
-- Until gate, `main` is Electron; `tauri-poc/` is untracked. To rollback: `rm -rf tauri-poc/` + keep `6b341d5`.
-- After cutover, `legacy-electron` branch at `84ac8a9` remains for hotfix.
+- Cutover DONE (2026-09-12): `main` is Tauri (root `src/`, `src-tauri/`, `tests/`); Electron app archived to `legacy-electron/` + `legacy-electron` branch at `c354775`.
+- To rollback: `git checkout legacy-electron` (or cherry-pick hotfixes from that branch). The `legacy-electron/` archive dir at root is a working copy only — the branch is the source of truth.
 
 ---
 
 ## 8. Next Actions (status)
 
 1. ✅ **Init POC spike** (`Phase 0`) — done `67b4b13` (`1.3MB` nsis + `1.9MB` msi).
-2. **Port `scan_folder` + `config`** (`Phase 1`) — `commands.rs` + `capabilities`, exit on `T1.1–T1.8` (§6.2 regression applies).
-3. **Wire `tauriIpc` adapter** (`Phase 2`) — `convertFileSrc` + `tests/tauri.adapter.test.js` (`T2.1–T2.6`).
-4. **Thumbnail sidecar** (`Phase 3`) — decision (b) canvas vs (a) ffmpeg opt-in + `T3.1–T3.5`.
-5. **Bundler/updater** (`Phase 4`) — pubkey paste (see `docs/TAURI_SIGNING.md`) + `T4.1–T4.5`.
+2. ✅ **Port `scan_folder` + `config`** (`Phase 1`) — done (see TEST_LOG.md Phase 1).
+3. ✅ **Wire `tauriIpc` adapter** (`Phase 2`) — done (see TEST_LOG.md Phase 2).
+4. ✅ **Thumbnail sidecar** (`Phase 3`) — done, decision (b) zero-dep (see TEST_LOG.md Phase 3).
+5. ✅ **Bundler/updater** (`Phase 4`) — done (see TEST_LOG.md Phase 4).
+6. ✅ **CUTOVER DONE** (2026-09-12, commit: `7f7fb42`) — Tauri POC promoted to root (`src/`, `src-tauri/`, `tests/`, `index.html`, `package.json`); Electron app archived to `legacy-electron/` + `legacy-electron` branch at `c354775`; Electron workflows deleted, `tauri.yml` is the sole pipeline. Clean-build gates re-run by orchestrator (see TEST_LOG.md cutover entry).
 
 Say `go phase 1` and Streams A–D launch in parallel (Streams defined in §6.1).

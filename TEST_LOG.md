@@ -1,5 +1,11 @@
 # RustyPlayer Tauri — Test Evidence Log (append-only, see TAURI_PORT_PLAN.md §6.2)
 
+## Cutover (2026-09-12, commit `7f7fb42`)
+
+- `legacy-electron` branch pinned at `c354775`; Electron tree archived to `legacy-electron/`.
+- Clean-build gates from new root: `cargo 16/16`, adapter `5/5`, `vite` ok, `tauri build` `nsis 2.3MB` / `msi 3.3MB`, `rustyplayer.exe` ALIVE.
+- Electron `npm 90/90` suite lives on in `legacy-electron/tests/` (not run in CI post-cutover).
+
 > Every phase exit appends: date, commit, each Tn.m case pass/fail + duration,
 > bundle sizes, manual checklist. No entry = gate not passed.
 
@@ -157,3 +163,19 @@ reset, awaiting one click to confirm `asset://` src.
 - `tauri` now declares `features = ["protocol-asset"]` (`http-range` for
   `<video>` seeking) with a keep-comment in `Cargo.toml`.
 - Stray `tauri-debug-*.txt` captures removed from repo root.
+
+## Cutover — Electron → Tauri (2026-09-12)
+
+- **Safety net:** `legacy-electron` branch at `c354775` (+ `legacy-electron/` archive dir at root).
+- **Layout (old → new):**
+
+  | Old | New |
+  |-----|-----|
+  | `tauri-poc/src/` | `src/` |
+  | `tauri-poc/src-tauri/` | `src-tauri/` |
+  | `tauri-poc/tests/` | `tests/` (`node --test tests/*.test.js`) |
+  | `tauri-poc/index.html`, `package.json`, `vite.config.ts`, `tsconfig.json` | root (same names) |
+  | `src/`, `tests/` (Electron), `scripts/`, `installer.iss`, `assets/`, `build/` | `legacy-electron/` archive |
+  | `.github/workflows/{build,portable-release,installer-release}.yml` | deleted (`git rm`); `.github/workflows/tauri.yml` is the sole pipeline (root paths, no `guard` job) |
+
+- **Gates re-run by orchestrator** (post-cutover clean-build): `cargo test`, `clippy`/`fmt`, adapter tests (`npm test`), `npx tauri build` + bundle sizes — results to be recorded here by orchestrator.
