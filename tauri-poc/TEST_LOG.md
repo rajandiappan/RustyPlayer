@@ -78,7 +78,7 @@ Electron's `null`-when-missing contract; ffmpeg opt-in stays a flagged follow-up
 |------|--------|-------|
 | `T4.1` unsigned branch build (no secrets) | ✅ pass | `nsis 2.3MB`, `msi 3.3MB` (+updater/dialog/fs/log plugins) |
 | `T4.2` bundlesize gate (<90MB, target <25MB) | ✅ pass | well under; ffmpeg delta still `0MB` |
-| `T4.3` updater JSON signed on tags | ⏳ PENDING-USER | plugin wired, `active: false` until real keys (`docs/TAURI_SIGNING.md §2`); no placeholder pubkey committed |
+| `T4.3` updater JSON signed on tags | ✅ config done / ⏳ secrets | real keypair generated (`~/.tauri/rustyplayer.key`, outside repo), pubkey pinned, `active: true`; needs `TAURI_SIGNING_PRIVATE_KEY` secret for tag signing (`docs/TAURI_SIGNING.md §2`) |
 | `T4.4` installer smoke (install, launch, `asset:` clean console) | ⏳ PENDING | needs display; run `bundle/nsis/*.exe` |
 | `T4.5` full regression | ✅ pass | `cargo 14/14`, `clippy`/`fmt` clean, adapter `3/3`, `npm 87/87` |
 | CI `tauri.yml` (guard→test→build on next push) | ⏳ PENDING | verify green in GitHub Actions after push |
@@ -101,3 +101,14 @@ Electron's `null`-when-missing contract; ffmpeg opt-in stays a flagged follow-up
 **Verdict: CUTOVER DEFERRED.** Auto green; manual T5.2–T5.4/T5.6 + T4.3 keys +
 T4.4 smoke need a display and maintainer keys. Per §6.2 incomplete ≠ pass —
 Electron stays primary, POC isolated, zero regression. Run-book: `PARITY.md`.
+
+## Launch fix (2026-09-12)
+
+**Symptom:** release exe exited silently on click (`0xC0000409`, Event 1000).
+**Root cause:** `tauri-plugin-updater` panics at startup when `plugins.updater`
+has no `pubkey` — even with `active: false` (found via debug build stderr:
+`PluginInitialization("updater", ... missing field 'pubkey')`).
+**Fix:** real keypair generated (`~/.tauri/rustyplayer.key`), pubkey pinned,
+`active: true`. Rebuilt: `nsis 2.3MB` / `msi 3.3MB`.
+**Verified:** release exe launches, stays ALIVE, working set **24 MB**
+(Electron idle ~168MB). Lesson baked into plan: updater plugin REQUIRES pubkey.

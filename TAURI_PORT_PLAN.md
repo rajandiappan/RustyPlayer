@@ -180,6 +180,7 @@ Desktop gates are unaffected.
 | `saveQueue Mutex` starvation (`main.js:87`) | Low | Lost `bounds` | `tokio::sync::Mutex` + `before-quit` sync flush `main.js:169` port |
 | `capabilities` too strict (fs allow-list) | Med | `scan_folder` denied | Start allow `$VIDEO/**` + `$APPDATA/**`, tighten after gate |
 | `ffmpeg` GPL + binary bloat (`ffmpeg-static`) | N/A if Tauri sidecar | `~280MB` | Use `ffmpeg-sidecar` Rust + `externalBin` only target OS |
+| Updater plugin without `pubkey` | Certain | Instant `0xC0000409` exit, no window (proven 2026-09-12) | `plugins.updater` REQUIRES `pubkey` even when `active: false` — generate keys first, never ship plugin-init without it |
 | CI `Rust` + `TAURI_SIGNING` secrets missing | Med | Build fails | Keep `electron-builder --publish never` on `main`, gate Tauri CI on tag only |
 | `tests` mock `electron` (`tests/main.test.js:22`) breaks | High if in-place | `87` red | POC has `src-tauri/tests/` separate, `main` untouched |
 

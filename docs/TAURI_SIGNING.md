@@ -21,26 +21,22 @@ No other secrets needed. **Never commit `.key` / `.pfx` files** — `.gitignore`
 Prereqs: Node 22 + Rust stable (1.79+) + Tauri CLI:
 
 ```powershell
-# from repo root (after Phase 0 creates tauri-poc/; for now run anywhere to mint keys)
-npm create tauri-app@latest tauri-poc -- --template vanilla   # Phase 0 — skip if already exists
 cd tauri-poc
-npm i
-npx tauri signer generate -- -w "$env:USERPROFILE\.tauri\rustyplayer.key"
-# prompts for password → prints PUBLIC KEY + writes secret key file
+npx tauri signer generate --ci -w "$env:USERPROFILE\.tauri\rustyplayer.key" -f
+# prints the PUBLIC KEY + writes the secret key file (no password with --ci)
 ```
 
-Then:
+✅ **DONE 2026-09-12:** keypair generated. Private key lives ONLY at
+`C:\Users\Raj\.tauri\rustyplayer.key` (+`.pub`) — outside the repo, gitignored,
+never committed. Public key is already pinned in `tauri-poc/src-tauri/tauri.conf.json`
+(`plugins.updater.pubkey`, `active: true`).
 
-1. Copy the printed **public key** into `tauri-poc/src-tauri/tauri.conf.json`:
-   ```json
-   { "plugins": { "updater": {
-     "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6...YOUR_KEY_HERE...",
-     "endpoints": ["https://github.com/rajandiappan/RustyPlayer/releases/latest/download/latest.json"]
-   } } }
-   ```
-2. Open the `.key` file, copy its **entire contents** → GitHub secret `TAURI_SIGNING_PRIVATE_KEY`.
-3. Password → secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty string if none).
-4. Delete the local `.key` after storing in a password manager. Rotate by repeating + updating pubkey (old clients reject new signatures until they fetch new pubkey — coordinate with a release note).
+Remaining maintainer steps:
+
+1. Open `C:\Users\Raj\.tauri\rustyplayer.key`, copy its **entire contents** → GitHub secret `TAURI_SIGNING_PRIVATE_KEY`.
+2. Back up the `.key` file in a password manager (loss = rotate keys + ship a release note, since old clients pin the old pubkey).
+3. No password was set (`--ci`): leave secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` **empty/unset**.
+4. Never commit the `.key` (`.gitignore` blocks `*.key`).
 
 Verify locally (unsigned path, no secrets needed):
 
