@@ -129,12 +129,42 @@ jobs:
         with:
           tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/v') && format('RustyPlayer {0} (Tauri)', github.ref_name) || '' }}
-          releaseBody: ${{ startsWith(github.ref, 'refs/tags/v') && 'Tauri build — see TAURI_PORT_PLAN.md parity gate.' || '' }}
+          releaseBody: ${{ startsWith(github.ref, 'refs/tags/v') && 'RustyPlayer (Tauri). Pick one asset below: `-setup.exe` installer (recommended), `.msi` for managed/Group-Policy installs, `-portable-win64.zip` for no-install use (needs WebView2). Verify with SHA256SUMS.txt. SmartScreen warning is expected until Authenticode signing lands.' || '' }}
           releaseDraft: ${{ startsWith(github.ref, 'refs/tags/v') }}
           prerelease: false
           includeUpdaterJson: true
-          # tauri-action builds `bundle.targets` from tauri.conf.json (nsis + portable).
+          # tauri-action builds `bundle.targets` from tauri.conf.json ("all" → nsis + msi on Windows).
           args: --target x86_64-pc-windows-msvc
+
+      # Portable zip + checksums: Tauri has no portable bundle target, so ship
+      # the raw exe zipped (needs WebView2 preinstalled — noted in README).
+      # Attaches to the SAME draft release tauri-action created above.
+      - name: Build portable zip + checksums (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $exe = "src-tauri/target/x86_64-pc-windows-msvc/release/rustyplayer.exe"
+          if (-not (Test-Path $exe)) { throw "missing $exe — bundle step failed?" }
+          New-Item -ItemType Directory -Path "dist-portable" -Force | Out-Null
+          Compress-Archive -Path $exe -DestinationPath "dist-portable/RustyPlayer-portable-win64.zip" -Force
+          $files = @(
+            "dist-portable/RustyPlayer-portable-win64.zip"
+          ) + @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe") `
+            + @(Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi")
+          $files | ForEach-Object { Get-FileHash $_ -Algorithm SHA256 } |
+            ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } |
+            Set-Content "dist-portable/SHA256SUMS.txt"
+          Get-Content "dist-portable/SHA256SUMS.txt"
+
+      - name: Attach portable + checksums to release (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          files: |
+            dist-portable/RustyPlayer-portable-win64.zip
+            dist-portable/SHA256SUMS.txt
 
       - name: Bundlesize gate (<25MB no-ffmpeg / <90MB ffmpeg opt-in)
         shell: bash
