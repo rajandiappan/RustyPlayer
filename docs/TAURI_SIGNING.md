@@ -20,18 +20,18 @@ Prereqs: Node 22 + Rust stable (1.79+) + Tauri CLI:
 
 ```powershell
 cd tauri-poc
-npx tauri signer generate --ci -w "$env:USERPROFILE\.tauri\rustyplayer.key" -f
+npx tauri signer generate --ci -w "$env:USERPROFILE\.tauri\rustyplayer-v2.key" -f
 # prints the PUBLIC KEY + writes the secret key file (no password with --ci)
 ```
 
 ✅ **DONE 2026-09-12:** keypair generated. Private key lives ONLY at
-`C:\Users\Raj\.tauri\rustyplayer.key` (+`.pub`) — outside the repo, gitignored,
+`C:\Users\Raj\.tauri\rustyplayer-v2.key` (+`.pub`) — outside the repo, gitignored,
 never committed. Public key is already pinned in `tauri-poc/src-tauri/tauri.conf.json`
 (`plugins.updater.pubkey`, `active: true`).
 
 Remaining maintainer steps:
 
-1. Open `C:\Users\Raj\.tauri\rustyplayer.key`, copy its **entire contents** → GitHub secret `TAURI_SIGNING_PRIVATE_KEY`.
+1. Open `C:\Users\Raj\.tauri\rustyplayer-v2.key`, copy its **entire contents** → GitHub secret `TAURI_SIGNING_PRIVATE_KEY`.
 2. Back up the `.key` file in a password manager (loss = rotate keys + ship a release note, since old clients pin the old pubkey).
 3. No password was set (`--ci`): leave secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` **empty/unset**.
 4. Never commit the `.key` (`.gitignore` blocks `*.key`).
