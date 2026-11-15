@@ -1,8 +1,8 @@
 name: Tauri — Test and Build
 
 # Primary release pipeline (post-cutover 2026-09-12). Electron workflows
-# (build/portable/installer) were removed; Electron app is archived to
-# legacy-electron/ + `legacy-electron` branch. Tauri sources live at root:
+# (build/portable/installer) were removed; Electron source is archived on the
+# `legacy-electron` branch. Tauri sources live at root:
 # src/, src-tauri/, tests/, index.html, package.json.
 
 on:

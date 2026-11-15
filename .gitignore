@@ -31,3 +31,6 @@ src-tauri/WixTools/
 *.key
 *.pfx
 *.p12
+
+# Local agent tooling
+.opencode/

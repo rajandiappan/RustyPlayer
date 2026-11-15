@@ -40,13 +40,12 @@ npm run tauri dev        # dev window
 npm run tauri build      # release bundle (~2MB nsis)
 ```
 
-## Docs & History
+## Contributing
 
-- Product spec: [PRD_Rust_Video_Player.md](PRD_Rust_Video_Player.md)
-- Release signing: [docs/TAURI_SIGNING.md](docs/TAURI_SIGNING.md)
-- Verification log: [TEST_LOG.md](TEST_LOG.md)
-- Electron predecessor (archived): [legacy-electron/](legacy-electron/)
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding
+conventions, and the required test gates (`node --test`, `cargo test`, clippy/fmt).
+Bugs and feature ideas go through the issue templates; questions via Discussions.
 
 ## License
 
-[MIT](LICENSE) — See LICENSE file.
+[MIT](LICENSE) — see [LICENSE](LICENSE).

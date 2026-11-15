@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Least-privilege capability for the main window (see TAURI_PORT_PLAN.md §1.1). Backend fs via std/tokio needs no capability; these gate frontend plugin calls only.",
+  "description": "Least-privilege capability for the main window. Backend fs via std/tokio needs no capability; these gate frontend plugin calls only.",
   "windows": ["main"],
   "permissions": [
     "core:default",

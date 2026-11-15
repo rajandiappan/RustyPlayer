@@ -1,7 +1,5 @@
-# Tauri Signing + Release Bootstrap (do BEFORE Phase 0 build)
+# Tauri Signing + Release Bootstrap
 
-> Electron stays primary until the Tauri parity gate (`TAURI_PORT_PLAN.md` Phase 5).
-> This doc prepares everything CI needs so Phase 0–4 never block on secrets.
 > Secrets are tag-gated: branch pushes/PRs build **unsigned** and still pass.
 
 ## 1. Required GitHub secrets (repo → Settings → Secrets and variables → Actions)

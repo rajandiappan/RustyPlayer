@@ -2,7 +2,7 @@
 
 ## Key Decisions (from Council v0.3, cutover 2026-09-12: Electron → Tauri v2)
 
-- **Platform:** Tauri v2 (weak-webview, ~2MB nsis) — cut over from Electron. Electron app archived to `legacy-electron/` + `legacy-electron` branch (at c354775).
+- **Platform:** Tauri v2 (weak-webview, ~2MB nsis) — cut over from Electron. Electron source archived on the `legacy-electron` branch (at c354775).
 - **Asset protocol:** `app.security.assetProtocol { enable: true, scope: ["**/*"] }` replaces `file://` — all media loads via `convertFileSrc` (`asset://`); `file://` is blocked by WebView2.
 - **Capabilities:** least-privilege (`capabilities/default.json`) — fs read `$VIDEO/**` + write only `$VIDEO/**/*.json`, dialog/open/updater scoped allows; no broad shell/path access.
 - **Updater:** via `tauri-plugin-updater` (pubkey pinned in `tauri.conf.json`, tag-gated signing secrets; plugin REQUIRES pubkey even when inactive).
